@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anamnez Tanı Asistanı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+    <style>
+        :root { --p: #2c3e50; --a: #3498db; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background: var(--p); color: white; padding: 15px; text-align: center; font-weight: bold; }
+        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 80%; padding: 12px; border-radius: 15px; font-size: 14px; }
+        .bot { background: white; border-left: 5px solid var(--a); align-self: flex-start; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .user { background: var(--a); color: white; align-self: flex-end; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 10px; margin-top: 5px; border-radius: 5px; cursor: pointer; }
+        .input-box { padding: 15px; background: white; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
+        button { background: var(--a); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        #loading { position: fixed; top: 0; left: 0; width: 100%; background: #e74c3c; color: white; text-align: center; font-size: 12px; z-index: 100; }
+    </style>
+</head>
+<body>
+
+<div id="loading">Veritabanı Yükleniyor...</div>
+<header>TIBBİ ANAMNEZ ASİSTANI</header>
+
+<div id="chat">
+    <div class="msg bot">Merhaba! Veritabanı bağlandı. Hastanın şikayetlerini veya aradığınız tanıyı yazabilirsiniz.</div>
+</div>
+
+<div class="input-box">
+    <input type="text" id="user-input" placeholder="Örn: çene şişliği, ağrı..." onkeypress="if(event.key==='Enter') search()">
+    <button onclick="search()">Sorgula</button>
+</div>
+
+<script>
+    let db = null;
+
+    // 1. SQL.js ve Veritabanını Başlat
+    async function init() {
+        try {
+            const sqlPromise = initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
+            const dataPromise = fetch("TANISIST..db").then(res => res.arrayBuffer());
+            const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
+            db = new SQL.Database(new Uint8Array(buf));
+            document.getElementById('loading').style.display = 'none';
+        } catch (e) {
+            document.getElementById('loading').innerText = "Hata: Veritabanı dosyası bulunamadı!";
+        }
+    }
+    init();
+
+    // 2. Arama Fonksiyonu
+    function search() {
+        const input = document.getElementById('user-input');
+        const chat = document.getElementById('chat');
+        const txt = input.value.trim();
+        if (!txt || !db) return;
+
+        chat.innerHTML += `<div class="msg user">${txt}</div>`;
+        
+        // Tüm tabloları tara
+        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        let found = false;
+        let response = `<div class="msg bot"><b>Bulunan Sonuçlar:</b><br>`;
+
+        if (tables.length > 0) {
+            tables[0].values.forEach(tRow => {
+                const tableName = tRow[0];
+                const cols = db.exec(`PRAGMA table_info('${tableName}')`)[0].values.map(c => c[1]);
+                const where = cols.map(c => `"${c}" LIKE '%${txt}%'`).join(" OR ");
+                
+                const res = db.exec(`SELECT * FROM "${tableName}" WHERE ${where}`);
+                if (res.length > 0) {
+                    found = true;
+                    res[0].values.forEach(row => {
+                        response += `<div class="card">
+                            <strong>${row[0]}</strong> <small>(${tableName.replace(/_/g, ' ')})</small><br>
+                            <small>${row.slice(1, 4).join(" | ").substring(0, 100)}...</small>
+                        </div>`;
+                    });
+                }
+            });
+        }
+
+        if (!found) response += "Eşleşen tıbbi kayıt bulunamadı.";
+        response += "</div>";
+        chat.innerHTML += response;
+        input.value = "";
+        chat.scrollTop = chat.scrollHeight;
+    }
+</script>
+</body>
+</html>
