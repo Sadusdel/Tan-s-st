@@ -3,58 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anamnez Tanı Asistanı - Gelişmiş Ayırıcı Tanı</title>
+    <title>Anamnez Tanı Asistanı - Klinik Protokol</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
-        :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --success: #27ae60; --border: #dcdde1; --accent: #e67e22; --danger: #e74c3c; }
+        :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --success: #27ae60; --border: #dcdde1; --accent: #e67e22; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: #2f3640; overflow: hidden; }
         
         header { position: absolute; top: 0; width: 100%; background: var(--p); color: white; padding: 1rem; text-align: center; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
         
-        #app-container { width: 95%; max-width: 900px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; position: relative; min-height: 700px; display: flex; flex-direction: column; justify-content: center; }
+        #app-container { width: 95%; max-width: 950px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; position: relative; min-height: 750px; display: flex; flex-direction: column; justify-content: center; }
 
-        .step { display: none; animation: slideIn 0.5s ease forwards; }
+        .step { display: none; animation: slideIn 0.4s ease forwards; }
         .step.active { display: block; }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
-        .question-title { font-size: 1.4rem; color: var(--p); margin-bottom: 0.5rem; font-weight: 700; text-align: center; }
-        .question-desc { font-size: 0.95rem; color: #7f8c8d; text-align: center; margin-bottom: 1.5rem; }
+        .question-title { font-size: 1.5rem; color: var(--p); margin-bottom: 0.5rem; font-weight: 800; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .question-desc { font-size: 0.95rem; color: #7f8c8d; text-align: center; margin-bottom: 20px; font-style: italic; }
         
-        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; max-height: 450px; overflow-y: auto; padding: 10px; }
-        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; min-height: 65px; line-height: 1.2; }
-        .option-btn:hover { border-color: var(--a); background: #ebf5fb; color: var(--a); transform: translateY(-1px); }
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-height: 480px; overflow-y: auto; padding: 10px; }
+        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 600; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 75px; line-height: 1.3; }
+        .option-btn:hover { border-color: var(--a); background: #f0f7ff; transform: translateY(-2px); }
         .option-btn.selected { background: var(--a); color: white; border-color: var(--a); box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3); }
 
-        .nav-buttons { margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .btn { padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 0.95rem; }
+        .nav-buttons { margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; }
+        .btn { padding: 12px 30px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; transition: 0.3s; font-size: 0.95rem; }
         .btn-back { background: #f1f2f6; color: #57606f; }
-        .btn-next { background: var(--p); color: white; margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .btn-next { background: var(--p); color: white; margin-left: auto; }
         
-        #results-list { max-height: 65vh; overflow-y: auto; padding-right: 15px; margin-top: 15px; }
-        .diagnosis-card { background: #fff; border: 1px solid var(--border); border-top: 5px solid var(--a); padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem; animation: fadeIn 0.5s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        #results-list { max-height: 65vh; overflow-y: auto; padding-right: 15px; }
+        .diagnosis-card { background: #fff; border: 1px solid var(--border); border-left: 6px solid var(--a); padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s; }
+        .diagnosis-card:hover { transform: scale(1.01); }
         
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid #f1f2f6; padding-bottom: 10px; }
-        .card-title { font-weight: 800; color: var(--p); font-size: 1.25rem; }
-        
-        .score-val { font-size: 1.15rem; font-weight: 800; color: var(--success); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-title { font-weight: 800; color: var(--p); font-size: 1.3rem; }
+        .score-val { font-size: 1.2rem; font-weight: 900; color: var(--success); background: #e8f5e9; padding: 5px 15px; border-radius: 10px; }
 
-        .match-badges-container { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-        .match-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid transparent; }
+        .detail-row { margin-bottom: 10px; display: grid; grid-template-columns: 160px 1fr; gap: 15px; font-size: 0.85rem; line-height: 1.5; border-bottom: 1px solid #f9f9f9; padding-bottom: 5px; }
+        .detail-label { font-weight: 800; color: #7f8c8d; text-transform: uppercase; font-size: 0.7rem; }
         
-        .badge-systemic { background: #ede7f6; color: #5e35b1; border-color: #d1c4e9; }
-        .badge-clinical { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
-        .badge-vitalite { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
-        .badge-radyoloji { background: #f1f8e9; color: #33691e; border-color: #dcedc8; }
-
-        .card-detail { font-size: 0.85rem; color: #2d3436; line-height: 1.6; }
-        .detail-row { margin-bottom: 8px; display: flex; gap: 12px; border-bottom: 1px dashed #eee; padding-bottom: 6px; }
-        .detail-label { min-width: 140px; font-weight: 700; color: #7f8c8d; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .progress-bar-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; background: #eee; border-radius: 0 0 20px 20px; overflow: hidden; }
+        .progress-bar-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; background: #eee; border-radius: 0 0 20px 20px; }
         .progress-bar { height: 100%; background: linear-gradient(90deg, var(--a), var(--success)); transition: width 0.4s ease; }
         
         #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
@@ -66,93 +54,113 @@
 
 <div id="loading-overlay">
     <div class="spinner"></div>
-    <div id="loading-text" style="margin-top:20px; font-weight:700; color:var(--p);">Hassas Klinik Algoritma Yapılandırılıyor...</div>
+    <div style="margin-top:20px; font-weight:700;">Klinik Veri Tabanı Yapılandırılıyor...</div>
 </div>
 
 <header>DENTAL ANAMNEZ VE AYIRICI TANI DESTEK SİSTEMİ</header>
 
 <div id="app-container">
-    <div id="quiz-flow">
-        <!-- Dinamik Sorular Buraya Gelecek -->
-    </div>
-    
+    <div id="quiz-flow"></div>
     <div id="results-view" style="display: none;">
-        <h3 style="text-align: center; color: var(--p); margin-bottom: 5px; font-weight: 800;">Analiz Sonuçları</h3>
-        <p style="text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 20px;">Sistemik ve lokal veriler harmanlanarak en yüksek uyum gösteren tablolar listelenmiştir.</p>
+        <h3 style="text-align: center; color: var(--p); font-weight: 800; margin-bottom: 20px;">Ayırıcı Tanı Listesi (Uyum Sıralı)</h3>
         <div id="results-list"></div>
-        <button class="btn btn-next" style="margin: 2rem auto; display: block; width: 250px;" onclick="restart()">Yeni Analiz Başlat</button>
+        <button class="btn btn-next" style="margin: 2rem auto; display: block;" onclick="restart()">Yeni Analiz</button>
     </div>
-
-    <div class="progress-bar-container">
-        <div class="progress-bar" id="progress"></div>
-    </div>
+    <div class="progress-bar-container"><div class="progress-bar" id="progress"></div></div>
 </div>
 
 <script>
     let db = null;
     let currentStep = 0;
     let selectedAnswers = {}; 
-    
-    // Genişletilmiş soru listesi ve karar ağacı
+
     const questions = [
         {
-            id: "systemic",
-            title: "Sistemik Durum ve Geçmiş",
-            desc: "Ağız dışı belirtiler ve kronik hastalıklar sistemik bir tabloyu (Örn: Behçet) işaret eder.",
+            id: "demografik",
+            title: "1. Demografik Özellikler",
+            desc: "Yaş ve cinsiyet belirli lezyon grupları için ayırt edicidir.",
             options: [
-                { val: "Behçet", label: "Tanılı Behçet Hastalığı", key: "Etiyolojisi", cat: "systemic", weight: 60 },
-                { val: "Diyabet", label: "Diyabet (Kontrolsüz)", key: "Etiyolojisi", cat: "systemic", weight: 40 },
-                { val: "Ekstraoral", label: "Gözde Yanma / Genital Yara", key: "Semptomları", cat: "systemic", weight: 55 },
-                { val: "İlaç", label: "Kronik İlaç Kullanımı", key: "Özel Notlar", cat: "systemic", weight: 30 },
-                { val: "Bağışıklık", label: "Bağışıklık Baskılayıcı Tedavi", key: "Etiyolojisi", cat: "systemic", weight: 45 },
-                { val: "Yok", label: "Bilinen Sistemik Hastalık Yok", key: "", cat: "systemic", weight: 0 }
+                { val: "Çocuk", label: "Çocuk / Adolesan", key: "Görüldüğü Yaş Aralığı", weight: 20 },
+                { val: "Genç Erişkin", label: "Genç Erişkin (20-40)", key: "Görüldüğü Yaş Aralığı", weight: 20 },
+                { val: "Orta Yaş", label: "Orta Yaş (40-60)", key: "Görüldüğü Yaş Aralığı", weight: 20 },
+                { val: "İleri Yaş", label: "İleri Yaş (60+)", key: "Görüldüğü Yaş Aralığı", weight: 20 },
+                { val: "Kadın", label: "Kadın", key: "Cinsiyet", weight: 15 },
+                { val: "Erkek", label: "Erkek", key: "Cinsiyet", weight: 15 }
             ]
         },
         {
-            id: "karakter",
-            title: "Klinik Karakter ve Renk",
-            desc: "Lezyonun birincil görünümü en temel ayırıcı kriterdir.",
+            id: "ana_sikayet",
+            title: "2. Ana Şikayetler",
+            desc: "Hastayı kliniğe getiren birincil semptom.",
             options: [
-                { val: "Kırmızı", label: "Baskın Kırmızı Alanlar", key: "Klinik Özellikleri", cat: "clinical", weight: 40 },
-                { val: "Beyaz", label: "Beyaz Plak/Çizgiler", key: "Klinik Özellikleri", cat: "clinical", weight: 40 },
-                { val: "Ülser", label: "Ağrılı Yara (Ülser)", key: "Semptomları", cat: "clinical", weight: 45 },
-                { val: "Kitle", label: "Doku Kabarıklığı / Kitle", key: "Klinik Özellikleri", cat: "clinical", weight: 40 },
-                { val: "Pigmente", label: "Kahverengi/Mor Pigmentasyon", key: "Klinik Özellikleri", cat: "clinical", weight: 40 },
-                { val: "Dişeti Kanama", label: "Spontan Diş Eti Kanaması", key: "Semptomları", cat: "clinical", weight: 50 }
+                { val: "Ağrı", label: "Şiddetli Ağrı", key: "Semptomlar", weight: 40 },
+                { val: "Şişlik", label: "Şişlik / Ekspansiyon", key: "Klinik Özellikleri", weight: 35 },
+                { val: "Kanama", label: "Kendiliğinden Kanama", key: "Semptomlar", weight: 45 },
+                { val: "Ağız Kuruluğu", label: "Ağız Kuruluğu (Kserostomi)", key: "Semptomlar", weight: 40 },
+                { val: "Kötü Tat", label: "Ağızda Kötü Tat / Koku", key: "Semptomlar", weight: 25 },
+                { val: "Semptomsuz", label: "Asemptomatik (Rutin Kontrol)", key: "Semptomlar", weight: 20 }
             ]
         },
         {
-            id: "dagilim",
-            title: "Lokalizasyon ve Dağılım",
-            desc: "Sistemik hastalıklarda lezyonlar genellikle simetrik dağılır.",
+            id: "sistemik",
+            title: "3. Sistemik Hastalıklar",
+            desc: "Çeneyi etkileyen veya ağız içi belirti veren genel durumlar.",
             options: [
-                { val: "Simetrik", label: "Simetrik (Çift Taraflı) Dağılım", key: "Özel Notlar", cat: "clinical", weight: 45 },
-                { val: "Yanak", label: "Bukkal Mukoza (Yanak)", key: "Lokalizasyon", cat: "clinical", weight: 20 },
-                { val: "Dil", label: "Dil (Lateral/Dorsum)", key: "Lokalizasyon", cat: "clinical", weight: 20 },
-                { val: "Damak", label: "Sert/Yumuşak Damak", key: "Lokalizasyon", cat: "clinical", weight: 25 },
-                { val: "Gingiva", label: "Marjinal Diş Eti", key: "Lokalizasyon", cat: "clinical", weight: 25 }
+                { val: "Diyabet", label: "Diyabet / Endokrin Bozukluk", key: "Etiyolojisi", weight: 50 },
+                { val: "Behçet", label: "Behçet Hastalığı Belirtileri", key: "Etiyolojisi", weight: 65 },
+                { val: "Bağışıklık", label: "İmmün Yetmezlik / Baskılanma", key: "Etiyolojisi", weight: 55 },
+                { val: "İlaç", label: "Kronik İlaç Kullanımı (Bifosfonat vb.)", key: "Özel Notlar", weight: 40 },
+                { val: "Gastrointestinal", label: "Sindirim Sistemi (Crohn/Çölyak)", key: "Etiyolojisi", weight: 45 },
+                { val: "Yok", label: "Bilinen Sistemik Hastalık Yok", key: "", weight: 0 }
             ]
         },
         {
-            id: "vitalite",
-            title: "Diş İlişkisi ve Vitalite",
-            desc: "Radiküler kist (devital) gibi enflamatuar lezyonları tümörlerden ayırır.",
+            id: "dis_durumu",
+            title: "4. İlişkili Dişin Durumu",
+            desc: "Lezyonun diş kaynaklı olup olmadığını anlamak için kritiktir.",
             options: [
-                { val: "Devital", label: "İlişkili Diş Devital", key: "Etiyolojisi", cat: "vitalite", weight: 50 },
-                { val: "Vital", label: "İlişkili Dişler Vital", key: "Klinik Özellikleri", cat: "vitalite", weight: 50 },
-                { val: "Kök Rezorpsiyonu", label: "Belirgin Kök Rezorpsiyonu", key: "Özel Notlar", cat: "radyoloji", weight: 40 },
-                { val: "Mobilite", label: "Dişlerde Patolojik Mobilite", key: "Semptomları", cat: "clinical", weight: 35 }
+                { val: "Devital", label: "Devital (Kanal Tedavili/Çürük)", key: "Etiyolojisi", weight: 60 },
+                { val: "Vital", label: "Vital (Canlı Dişler)", key: "Klinik Özellikleri", weight: 50 },
+                { val: "Gömülü", label: "Gömülü Diş İlişkili", key: "Lokalizasyon", weight: 45 },
+                { val: "Mobilite", label: "Dişlerde Sallanma (Mobilite)", key: "Semptomlar", weight: 40 },
+                { val: "Rezorpsiyon", label: "Kök Rezorpsiyonu Mevcut", key: "Radyolojik Görüntü Özellikleri", weight: 50 }
             ]
         },
         {
-            id: "surec",
-            title: "Süreç ve Tekrarlama",
-            desc: "Lezyonun zaman içindeki davranışı kronikleşme eğilimini belirler.",
+            id: "doku_klinik",
+            title: "5. Dokunun Durumu ve Görünüm",
+            desc: "Lezyonun fiziksel karakteri (Renk, Yapı).",
             options: [
-                { val: "Tekrarlayan", label: "Sık Tekrarlayan Yaralar", key: "Semptomları", cat: "systemic", weight: 50 },
-                { val: "Yavaş", label: "Yavaş ve Ağrısız Büyüme", key: "Klinik Özellikleri", cat: "clinical", weight: 30 },
-                { val: "Hızlı", label: "Hızlı İlerleme", key: "Klinik Özellikleri", cat: "clinical", weight: 40 },
-                { val: "B12", label: "Metalik Tat / Yanma Hissi", key: "Semptomları", cat: "systemic", weight: 45 }
+                { val: "Ülser", label: "Ülserleşmiş (Doku Kaybı)", key: "Klinik Özellikleri", weight: 45 },
+                { val: "Beyaz", label: "Beyaz Plak / Keratotik", key: "Klinik Özellikleri", weight: 40 },
+                { val: "Kırmızı", label: "Eritematöz (Kırmızı)", key: "Klinik Özellikleri", weight: 40 },
+                { val: "Vezikül", label: "Bül / Vezikül (İçi Sıvı Dolu)", key: "Klinik Özellikleri", weight: 55 },
+                { val: "Kitle", label: "Ekzofitik (Dışa Büyüyen) Kitle", key: "Klinik Özellikleri", weight: 40 },
+                { val: "Pigmente", label: "Kahverengi / Siyah Pigment", key: "Klinik Özellikleri", weight: 50 }
+            ]
+        },
+        {
+            id: "radyoloji",
+            title: "6. Radyolojik Görünüm",
+            desc: "Kemik içi lezyonların iç yapısı.",
+            options: [
+                { val: "Uniloküler", label: "Uniloküler Radyolüsens", key: "Radyolojik Görüntü Özellikleri", weight: 45 },
+                { val: "Multiloküler", label: "Multiloküler (Sabun Köpüğü)", key: "Radyolojik Görüntü Özellikleri", weight: 60 },
+                { val: "Radyoopak", label: "Radyoopak / Mikst Yapı", key: "Radyolojik Görüntü Özellikleri", weight: 50 },
+                { val: "Buzlu Cam", label: "Buzlu Cam (Ground Glass)", key: "Özel Benzetmesi", weight: 65 },
+                { val: "Sınırları Belirsiz", label: "Sınırları Belirsiz / İnvaziv", key: "Radyolojik Görüntü Özellikleri", weight: 55 }
+            ]
+        },
+        {
+            id: "ekstraoral",
+            title: "7. Ekstraoral Muayene",
+            desc: "Ağız dışı belirtiler sistemik yayılımı gösterir.",
+            options: [
+                { val: "Lenfadenopati", label: "Lenf Nodlarında Şişlik (LAP)", key: "Semptomlar", weight: 50 },
+                { val: "Asimetri", label: "Yüzde Belirgin Asimetri", key: "Klinik Özellikleri", weight: 40 },
+                { val: "Deri", label: "Deri Döküntüsü / Lezyonu", key: "Özel Notlar", weight: 55 },
+                { val: "Trismus", label: "Ağız Açıklığında Kısıtlılık", key: "Semptomlar", weight: 45 },
+                { val: "Normal", label: "Ekstraoral Bulgul Normal", key: "", weight: 0 }
             ]
         }
     ];
@@ -166,7 +174,7 @@
             document.getElementById('loading-overlay').style.display = 'none';
             renderQuestion();
         } catch (e) {
-            document.getElementById('loading-text').innerText = "Hata: Veritabanı dosyası yüklenemedi. Lütfen internet bağlantınızı kontrol edin.";
+            document.getElementById('loading-text').innerText = "Hata: Veritabanı yüklenemedi.";
         }
     }
 
@@ -188,7 +196,7 @@
                 </div>
                 <div class="nav-buttons">
                     ${currentStep > 0 ? `<button class="btn btn-back" onclick="prevStep()">Geri</button>` : '<div></div>'}
-                    <button class="btn btn-next" onclick="nextStep()">${currentStep === questions.length - 1 ? 'Sonuçları Gör' : 'Devam Et'}</button>
+                    <button class="btn btn-next" onclick="nextStep()">${currentStep === questions.length - 1 ? 'Analizi Bitir' : 'Sonraki Adım'}</button>
                 </div>
             </div>
         `;
@@ -242,17 +250,16 @@
             if (rows.length > 0) {
                 rows[0].values.forEach(row => {
                     let totalScore = 0;
-                    let matches = [];
+                    let matchCount = 0;
 
                     flatAnswers.forEach(ans => {
-                        const colIdx = cols.indexOf(ans.key);
+                        const colIdx = cols.findIndex(c => c.toLowerCase().includes(ans.key.toLowerCase().substring(0,5)));
                         if (colIdx !== -1 && row[colIdx]) {
                             const dbVal = row[colIdx].toString().toLowerCase();
                             const searchVal = ans.val.toLowerCase();
-                            
                             if (dbVal.includes(searchVal)) {
-                                totalScore += ans.weight || 20;
-                                matches.push({label: ans.label, cat: ans.cat});
+                                totalScore += ans.weight;
+                                matchCount++;
                             }
                         }
                     });
@@ -263,8 +270,7 @@
                             table: tableName,
                             score: totalScore,
                             data: row,
-                            cols: cols,
-                            matches: matches
+                            cols: cols
                         });
                     }
                 });
@@ -274,22 +280,23 @@
         scoredDiagnosis.sort((a, b) => b.score - a.score);
 
         if (scoredDiagnosis.length === 0) {
-            resultsList.innerHTML = "<p style='text-align:center; padding:40px; color:#7f8c8d;'>Girdiğiniz verilere uygun bir eşleşme bulunamadı. Lütfen belirtileri tekrar kontrol edin.</p>";
+            resultsList.innerHTML = "<p style='text-align:center; padding:50px;'>Eşleşen kriter bulunamadı. Lütfen girişleri kontrol edin.</p>";
             return;
         }
 
-        scoredDiagnosis.slice(0, 15).forEach(item => {
+        scoredDiagnosis.slice(0, 12).forEach(item => {
             const card = document.createElement('div');
             card.className = 'diagnosis-card';
             
             let detailsHtml = "";
-            const displayCols = ["Etiyolojisi", "SemptomlarÄ±", "Klinik Ã–zellikleri", "Lokalizasyon"];
+            const importantCols = ["Etiyolojisi", "Semptomlar", "Klinik Özellikleri", "Radyolojik Görüntü Özellikleri", "Özel Notlar"];
             
             item.cols.forEach((c, idx) => {
-                if (item.data[idx] && idx > 0 && idx < 12) {
+                const cleanCol = c.replace(/Ä±/g, 'ı').replace(/Ã–/g, 'Ö').replace(/Ã¼/g, 'ü').replace(/ÅŸ/g, 'ş');
+                if (item.data[idx] && idx > 0 && idx < 10) {
                     detailsHtml += `
                         <div class="detail-row">
-                            <span class="detail-label">${c.replace(/Ä±/g, 'ı').replace(/Ã–/g, 'Ö').replace(/Ã¼/g, 'ü')}</span>
+                            <span class="detail-label">${cleanCol}</span>
                             <span class="detail-val">${item.data[idx]}</span>
                         </div>`;
                 }
@@ -298,13 +305,10 @@
             card.innerHTML = `
                 <div class="card-header">
                     <div>
-                        <div style="font-size:0.75rem; color:var(--a); font-weight:800; text-transform:uppercase; margin-bottom:4px;">${item.table.replace(/_/g, ' ')}</div>
+                        <small style="color:var(--a); font-weight:800; text-transform:uppercase;">${item.table.replace(/_/g, ' ')}</small>
                         <div class="card-title">${item.name}</div>
                     </div>
-                    <div class="score-val">%${Math.min(item.score, 100)}</div>
-                </div>
-                <div class="match-badges-container">
-                    ${item.matches.map(m => `<span class="match-badge badge-${m.cat}">${m.label}</span>`).join('')}
+                    <div class="score-val">%${Math.min(Math.round(item.score/2.5), 100)}</div>
                 </div>
                 <div class="card-detail">${detailsHtml}</div>
             `;
