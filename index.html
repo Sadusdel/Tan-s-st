@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anamnez Tanı Asistanı - İnteraktif Sorgulama</title>
+    <title>Anamnez Tanı Asistanı - Gelişmiş Sorgulama</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
         :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --success: #27ae60; --border: #dcdde1; --accent: #e67e22; }
@@ -11,44 +11,47 @@
         
         header { position: absolute; top: 0; width: 100%; background: var(--p); color: white; padding: 1rem; text-align: center; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
         
-        #app-container { width: 90%; max-width: 600px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2.5rem; position: relative; min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
+        #app-container { width: 95%; max-width: 700px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2.5rem; position: relative; min-height: 500px; display: flex; flex-direction: column; justify-content: center; }
 
         .step { display: none; animation: slideIn 0.5s ease forwards; }
         .step.active { display: block; }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes fadeOut {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(-30px); }
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
         }
 
-        .question-title { font-size: 1.4rem; color: var(--p); margin-bottom: 1.5rem; font-weight: 600; text-align: center; }
+        .question-title { font-size: 1.3rem; color: var(--p); margin-bottom: 0.5rem; font-weight: 700; text-align: center; }
+        .question-desc { font-size: 0.9rem; color: #7f8c8d; text-align: center; margin-bottom: 1.5rem; }
         
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 12px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 500; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; min-height: 50px; }
         .option-btn:hover { border-color: var(--a); background: #ebf5fb; color: var(--a); }
         .option-btn.selected { background: var(--a); color: white; border-color: var(--a); }
 
-        .nav-buttons { margin-top: 2rem; display: flex; justify-content: space-between; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .nav-buttons { margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-back { background: #eee; color: #666; }
         .btn-next { background: var(--p); color: white; margin-left: auto; }
-        .btn-next:disabled { background: #ccc; cursor: not-allowed; }
         
         /* Sonuç Kartları */
-        #results-list { max-height: 500px; overflow-y: auto; padding-right: 10px; }
-        .diagnosis-card { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--success); padding: 1rem; border-radius: 10px; margin-bottom: 1rem; animation: fadeIn 0.5s ease; }
-        .card-title { font-weight: 700; color: var(--p); font-size: 1.1rem; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .match-tag { font-size: 0.75rem; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; }
-        .card-detail { font-size: 0.85rem; color: #636e72; line-height: 1.4; }
+        #results-list { max-height: 55vh; overflow-y: auto; padding-right: 10px; margin-top: 10px; }
+        .diagnosis-card { background: #fff; border: 1px solid var(--border); border-left: 6px solid var(--a); padding: 1.2rem; border-radius: 12px; margin-bottom: 1.2rem; animation: fadeIn 0.5s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .card-title { font-weight: 800; color: var(--p); font-size: 1.2rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .match-tag { font-size: 0.8rem; background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        .card-detail { font-size: 0.85rem; color: #444; line-height: 1.5; }
+        .detail-item { margin-bottom: 6px; }
+        .detail-label { font-weight: 700; color: #7f8c8d; font-size: 0.75rem; text-transform: uppercase; margin-right: 5px; }
 
-        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: var(--a); transition: width 0.4s ease; border-radius: 0 0 0 20px; }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: linear-gradient(90deg, var(--a), var(--success)); transition: width 0.4s ease; border-radius: 0 0 0 20px; }
         
         #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--a); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid var(--a); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -56,10 +59,10 @@
 
 <div id="loading-overlay">
     <div class="spinner"></div>
-    <div id="loading-text">Veritabanı Hazırlanıyor...</div>
+    <div id="loading-text">Tıbbi Veritabanı Analiz Ediliyor...</div>
 </div>
 
-<header>ANAMNEZ KARAR DESTEK ASİSTANI</header>
+<header>ANAMNEZ VE TANI KARAR DESTEK SİSTEMİ</header>
 
 <div id="app-container">
     <div id="quiz-flow">
@@ -67,10 +70,10 @@
     </div>
     
     <div id="results-view" style="display: none;">
-        <h3 style="text-align: center; color: var(--p);">Olası Tanılar</h3>
-        <p style="text-align: center; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 1.5rem;">Verdiğiniz yanıtlara göre en yakın eşleşmeler aşağıdadır.</p>
+        <h3 style="text-align: center; color: var(--p); margin-bottom: 5px;">Olası Tanılar</h3>
+        <p style="text-align: center; font-size: 0.85rem; color: #7f8c8d; margin-bottom: 1rem;">Seçilen klinik verilere en yakın eşleşmeler sıralanmıştır.</p>
         <div id="results-list"></div>
-        <button class="btn btn-next" style="margin: 1rem auto; display: block;" onclick="restart()">Yeni Sorgu Başlat</button>
+        <button class="btn btn-next" style="margin: 1.5rem auto; display: block; width: 200px;" onclick="restart()">Yeni Analiz Başlat</button>
     </div>
 
     <div class="progress-bar" id="progress"></div>
@@ -79,34 +82,87 @@
 <script>
     let db = null;
     let currentStep = 0;
-    let answers = {};
+    let selectedAnswers = {}; // {questionId: [selectedOptions]}
     
-    // Anamnez Soruları
+    // Gruplandırılmış ve Genişletilmiş Sorular
     const questions = [
         {
+            id: "demografik",
+            title: "Hasta Demografisi",
+            desc: "Hastanın yaş grubu ve cinsiyetini belirtiniz.",
+            multi: true,
+            options: [
+                { val: "Çocuk", label: "Yaş: Çocuk (0-12)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Genç", label: "Yaş: Genç (13-24)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Erişkin", label: "Yaş: Erişkin (25-50)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Yaşlı", label: "Yaş: Yaşlı (50+)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Erkek", label: "Cinsiyet: Erkek", key: "Cinsiyet" },
+                { val: "Kadın", label: "Cinsiyet: Kadın", key: "Cinsiyet" }
+            ]
+        },
+        {
             id: "lokalizasyon",
-            title: "Lezyonun temel lokalizasyonu neresidir?",
-            options: ["Dil", "Yanak", "Damak", "Diş Eti", "Dudak", "Ağız Tabanı", "Çene Kemiği"]
+            title: "Lokalizasyon ve Yayılım",
+            desc: "Lezyonun birincil görüldüğü bölgeleri seçiniz.",
+            multi: true,
+            options: [
+                { val: "Dil", label: "Dil", key: "Lokalizasyon" },
+                { val: "Yanak", label: "Yanak (Bukkal)", key: "Lokalizasyon" },
+                { val: "Damak", label: "Damak", key: "Lokalizasyon" },
+                { val: "Diş Eti", label: "Diş Eti (Gingiva)", key: "Lokalizasyon" },
+                { val: "Dudak", label: "Dudak", key: "Lokalizasyon" },
+                { val: "Ağız Tabanı", label: "Ağız Tabanı", key: "Lokalizasyon" },
+                { val: "Çene", label: "Çene Kemiği", key: "Lokalizasyon" },
+                { val: "Mukoza", label: "Genel Mukoza", key: "Lokalizasyon" }
+            ]
         },
         {
-            id: "semptom",
-            title: "En belirgin semptom hangisidir?",
-            options: ["Ağrısız Şişlik", "Ağrılı Yaralar", "Kanama", "Renk Değişikliği", "Uyuşukluk", "Kaşıntı", "Kötü Koku"]
+            id: "klinik_gorunum",
+            title: "Klinik Görünüm ve Benzetme",
+            desc: "Muayenede gözlemlenen fiziksel özellikleri seçiniz.",
+            multi: true,
+            options: [
+                { val: "Kırmızı", label: "Kırmızı (Eritematöz)", key: "Klinik Özellikleri" },
+                { val: "Beyaz", label: "Beyaz (Keratotik)", key: "Klinik Özellikleri" },
+                { val: "Ülser", label: "Ülseratif / Yaralı", key: "Klinik Özellikleri" },
+                { val: "Şişlik", label: "Şişlik / Nodül", key: "Klinik Özellikleri" },
+                { val: "İnci", label: "İnci Benzeri", key: "Özel Benzetmesi" },
+                { val: "Karnabahar", label: "Karnabahar Görünümü", key: "Özel Benzetmesi" },
+                { val: "Dantel", label: "Dantel/Ağ Yapısı", key: "Özel Benzetmesi" },
+                { val: "Kadife", label: "Kadifemsi Doku", key: "Özel Benzetmesi" }
+            ]
         },
         {
-            id: "cinsiyet",
-            title: "Hastanın cinsiyeti nedir?",
-            options: ["Erkek", "Kadın", "Fark Etmez"]
+            id: "semptomlar",
+            title: "Semptomlar ve Etiyoloji",
+            desc: "Hastanın şikayetlerini ve olası tetikleyicileri seçiniz.",
+            multi: true,
+            options: [
+                { val: "Ağrı", label: "Ağrı Şikayeti", key: "Semptomları" },
+                { val: "Kanama", label: "Kanama Eğilimi", key: "Semptomları" },
+                { val: "Uyuşukluk", label: "Uyuşukluk (Parestezi)", key: "Semptomları" },
+                { val: "Koku", label: "Kötü Koku (Halitozis)", key: "Semptomları" },
+                { val: "Travma", label: "Travma Geçmişi", key: "Etiyolojisi" },
+                { val: "Enfeksiyon", label: "Enfeksiyöz Kaynaklı", key: "Etiyolojisi" },
+                { val: "Sigara", label: "Sigara/Alkol Kullanımı", key: "Etiyolojisi" },
+                { val: "Genetik", label: "Kalıtsal/Genetik", key: "Etiyolojisi" }
+            ]
         },
         {
-            id: "yas",
-            title: "Hasta hangi yaş grubunda?",
-            options: ["Çocuk (0-12)", "Genç (13-24)", "Erişkin (25-50)", "Yaşlı (50+)"]
-        },
-        {
-            id: "gorunus",
-            title: "Lezyonun görünüşü nasıl tanımlanabilir?",
-            options: ["Kırmızı/Eritematöz", "Beyaz/Keratotik", "Ülseratif", "Kistik/Flüktuan", "Sert/Radyopak", "Vezikülobüllöz"]
+            id: "radyoloji",
+            title: "Radyolojik ve Özel Notlar",
+            desc: "Radyografik bulguları ve spesifik notları seçiniz.",
+            multi: true,
+            options: [
+                { val: "Radyopak", label: "Radyopak (Beyaz) Alan", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Radyolüsent", label: "Radyolüsent (Siyah) Alan", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Kistik", label: "Kistik Görünüm", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Sınır", label: "Sınırları Belirsiz", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Biyopsi", label: "Biyopsi Gerekli", key: "Özel Notlar" },
+                { val: "Malign", label: "Malignite Şüphesi", key: "Özel Notlar" },
+                { val: "Sistemik", label: "Sistemik İlişkili", key: "Özel Notlar" },
+                { val: "Kendi", label: "Kendiliğinden İyileşen", key: "Özel Notlar" }
+            ]
         }
     ];
 
@@ -134,10 +190,16 @@
         let html = `
             <div class="step active">
                 <div class="question-title">${q.title}</div>
+                <div class="question-desc">${q.desc}</div>
                 <div class="options-grid">
-                    ${q.options.map(opt => `
-                        <div class="option-btn" onclick="selectOption('${q.id}', '${opt}')">${opt}</div>
-                    `).join('')}
+                    ${q.options.map(opt => {
+                        const isSelected = selectedAnswers[q.id]?.some(a => a.val === opt.val);
+                        return `<div class="option-btn ${isSelected ? 'selected' : ''}" onclick="toggleOption(${currentStep}, '${opt.val}')">${opt.label}</div>`;
+                    }).join('')}
+                </div>
+                <div class="nav-buttons">
+                    ${currentStep > 0 ? `<button class="btn btn-back" onclick="prevStep()">Geri</button>` : '<div></div>'}
+                    <button class="btn btn-next" onclick="nextStep()">${currentStep === questions.length - 1 ? 'Analiz Et' : 'Sonraki'}</button>
                 </div>
             </div>
         `;
@@ -145,21 +207,39 @@
         container.innerHTML = html;
     }
 
-    function selectOption(qId, value) {
-        answers[qId] = value;
+    function toggleOption(stepIdx, val) {
+        const q = questions[stepIdx];
+        const option = q.options.find(o => o.val === val);
         
-        // Animasyonlu geçiş
-        const currentEl = document.querySelector('.step.active');
-        currentEl.style.animation = "fadeOut 0.4s ease forwards";
+        if (!selectedAnswers[q.id]) selectedAnswers[q.id] = [];
         
-        setTimeout(() => {
-            if (currentStep < questions.length - 1) {
+        const existingIdx = selectedAnswers[q.id].findIndex(a => a.val === val);
+        if (existingIdx > -1) {
+            selectedAnswers[q.id].splice(existingIdx, 1);
+        } else {
+            selectedAnswers[q.id].push(option);
+        }
+        renderQuestion();
+    }
+
+    function nextStep() {
+        if (currentStep < questions.length - 1) {
+            const currentEl = document.querySelector('.step.active');
+            currentEl.style.animation = "fadeOut 0.3s ease forwards";
+            setTimeout(() => {
                 currentStep++;
                 renderQuestion();
-            } else {
-                showResults();
-            }
-        }, 400);
+            }, 300);
+        } else {
+            showResults();
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            renderQuestion();
+        }
     }
 
     function showResults() {
@@ -173,26 +253,44 @@
         const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
         let scoredDiagnosis = [];
 
+        // Seçilen tüm cevapları tek bir düz listede topla
+        let flatAnswers = [];
+        Object.values(selectedAnswers).forEach(list => flatAnswers.push(...list));
+
         tables[0].values.forEach(tRow => {
             const tableName = tRow[0];
             const cols = db.exec(`PRAGMA table_info('${tableName}')`)[0].values.map(c => c[1]);
-            
             const rows = db.exec(`SELECT * FROM "${tableName}"`);
+
             if (rows.length > 0) {
                 rows[0].values.forEach(row => {
                     let score = 0;
                     let matches = [];
 
-                    // Puanlama Mantığı
-                    Object.keys(answers).forEach(key => {
-                        const val = answers[key].toLowerCase();
-                        // Satırdaki tüm hücreleri tara
-                        row.forEach(cell => {
-                            if (cell && cell.toString().toLowerCase().includes(val)) {
-                                score += 20; // Her eşleşme için puan
-                                matches.push(answers[key]);
+                    flatAnswers.forEach(ans => {
+                        const colIdx = cols.indexOf(ans.key);
+                        if (colIdx !== -1 && row[colIdx]) {
+                            const dbValue = row[colIdx].toString();
+                            
+                            // Cinsiyet Mantığı Filtrelemesi
+                            if (ans.key === "Cinsiyet") {
+                                if (dbValue === "K=E") { 
+                                    score += 15; // "Fark etmez" durumu
+                                    matches.push("Cinsiyet: Her İki");
+                                } else if (ans.val === "Kadın" && dbValue.includes("K>E")) {
+                                    score += 25;
+                                    matches.push("Cinsiyet: Kadın Baskın");
+                                } else if (ans.val === "Erkek" && dbValue.includes("K<E")) {
+                                    score += 25;
+                                    matches.push("Cinsiyet: Erkek Baskın");
+                                }
+                            } 
+                            // Diğer Sütunlarda Fuzzy Arama
+                            else if (dbValue.toLowerCase().includes(ans.val.toLowerCase())) {
+                                score += 20;
+                                matches.push(ans.label.split(':')[0]);
                             }
-                        });
+                        }
                     });
 
                     if (score > 0) {
@@ -202,32 +300,45 @@
                             score: score,
                             data: row,
                             cols: cols,
-                            matches: Array.from(new Set(matches))
+                            matches: [...new Set(matches)]
                         });
                     }
                 });
             }
         });
 
-        // En yüksek puana göre sırala
         scoredDiagnosis.sort((a, b) => b.score - a.score);
 
         if (scoredDiagnosis.length === 0) {
-            resultsList.innerHTML = "<p style='text-align:center;'>Üzgünüz, bu kriterlere uygun bir tanı bulunamadı.</p>";
+            resultsList.innerHTML = "<div class='info-msg' style='text-align:center; padding:20px;'>Kriterlere uygun tanı bulunamadı. Lütfen semptomları gözden geçirin.</div>";
         } else {
-            scoredDiagnosis.slice(0, 10).forEach(item => {
+            scoredDiagnosis.slice(0, 15).forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'diagnosis-card';
+                
+                let details = "";
+                // Veritabanı sütunlarını kart içine diz
+                item.cols.forEach((cName, idx) => {
+                    if (item.data[idx] && idx > 0 && idx < 11) {
+                        details += `
+                            <div class="detail-item">
+                                <span class="detail-label">${cName}:</span>
+                                <span class="detail-val">${item.data[idx].toString().substring(0, 300)}</span>
+                            </div>`;
+                    }
+                });
+
                 card.innerHTML = `
                     <div class="card-title">
                         ${item.name}
                         <span class="match-tag">${item.score} Puan</span>
                     </div>
                     <div class="card-detail">
-                        <strong>Grup:</strong> ${item.table}<br>
-                        <strong>Eşleşen Bulgular:</strong> ${item.matches.join(', ')}<br>
-                        <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
-                        ${item.data[5] ? `<strong>Klinik:</strong> ${item.data[5].substring(0, 150)}...` : ''}
+                        <div class="detail-item"><span class="detail-label">Kategori:</span> <b style="color:var(--a)">${item.table}</b></div>
+                        ${details}
+                        <div style="margin-top:10px; padding:8px; background:#f0f7ff; border-radius:6px; font-size:0.75rem;">
+                            <b>Eşleşen Kriterler:</b> ${item.matches.join(', ')}
+                        </div>
                     </div>
                 `;
                 resultsList.appendChild(card);
@@ -237,7 +348,7 @@
 
     function restart() {
         currentStep = 0;
-        answers = {};
+        selectedAnswers = {};
         document.getElementById('quiz-flow').style.display = 'block';
         document.getElementById('results-view').style.display = 'none';
         renderQuestion();
