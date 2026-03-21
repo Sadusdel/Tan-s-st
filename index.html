@@ -3,93 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anamnez Tanı Asistanı</title>
+    <title>Anamnez Tanı Asistanı - İnteraktif Sorgulama</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
-        :root { --p: #2c3e50; --a: #3498db; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { background: var(--p); color: white; padding: 15px; text-align: center; font-weight: bold; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 12px; border-radius: 15px; font-size: 14px; }
-        .bot { background: white; border-left: 5px solid var(--a); align-self: flex-start; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .user { background: var(--a); color: white; align-self: flex-end; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 10px; margin-top: 5px; border-radius: 5px; cursor: pointer; }
-        .input-box { padding: 15px; background: white; display: flex; gap: 10px; border-top: 1px solid #ddd; }
-        input { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        button { background: var(--a); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-        #loading { position: fixed; top: 0; left: 0; width: 100%; background: #e74c3c; color: white; text-align: center; font-size: 12px; z-index: 100; }
+        :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --success: #27ae60; --border: #dcdde1; --accent: #e67e22; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: #2f3640; overflow: hidden; }
+        
+        header { position: absolute; top: 0; width: 100%; background: var(--p); color: white; padding: 1rem; text-align: center; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
+        
+        #app-container { width: 90%; max-width: 600px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2.5rem; position: relative; min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
+
+        .step { display: none; animation: slideIn 0.5s ease forwards; }
+        .step.active { display: block; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(-30px); }
+        }
+
+        .question-title { font-size: 1.4rem; color: var(--p); margin-bottom: 1.5rem; font-weight: 600; text-align: center; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .option-btn:hover { border-color: var(--a); background: #ebf5fb; color: var(--a); }
+        .option-btn.selected { background: var(--a); color: white; border-color: var(--a); }
+
+        .nav-buttons { margin-top: 2rem; display: flex; justify-content: space-between; }
+        .btn { padding: 12px 25px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-next { background: var(--p); color: white; margin-left: auto; }
+        .btn-next:disabled { background: #ccc; cursor: not-allowed; }
+        
+        /* Sonuç Kartları */
+        #results-list { max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .diagnosis-card { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--success); padding: 1rem; border-radius: 10px; margin-bottom: 1rem; animation: fadeIn 0.5s ease; }
+        .card-title { font-weight: 700; color: var(--p); font-size: 1.1rem; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .match-tag { font-size: 0.75rem; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; }
+        .card-detail { font-size: 0.85rem; color: #636e72; line-height: 1.4; }
+
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: var(--a); transition: width 0.4s ease; border-radius: 0 0 0 20px; }
+        
+        #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--a); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loading">Veritabanı Yükleniyor...</div>
-<header>TIBBİ ANAMNEZ ASİSTANI</header>
-
-<div id="chat">
-    <div class="msg bot">Merhaba! Veritabanı bağlandı. Hastanın şikayetlerini veya aradığınız tanıyı yazabilirsiniz.</div>
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">Veritabanı Hazırlanıyor...</div>
 </div>
 
-<div class="input-box">
-    <input type="text" id="user-input" placeholder="Örn: çene şişliği, ağrı..." onkeypress="if(event.key==='Enter') search()">
-    <button onclick="search()">Sorgula</button>
+<header>ANAMNEZ KARAR DESTEK ASİSTANI</header>
+
+<div id="app-container">
+    <div id="quiz-flow">
+        <!-- Sorular Dinamik Olarak Buraya Gelecek -->
+    </div>
+    
+    <div id="results-view" style="display: none;">
+        <h3 style="text-align: center; color: var(--p);">Olası Tanılar</h3>
+        <p style="text-align: center; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 1.5rem;">Verdiğiniz yanıtlara göre en yakın eşleşmeler aşağıdadır.</p>
+        <div id="results-list"></div>
+        <button class="btn btn-next" style="margin: 1rem auto; display: block;" onclick="restart()">Yeni Sorgu Başlat</button>
+    </div>
+
+    <div class="progress-bar" id="progress"></div>
 </div>
 
 <script>
     let db = null;
+    let currentStep = 0;
+    let answers = {};
+    
+    // Anamnez Soruları
+    const questions = [
+        {
+            id: "lokalizasyon",
+            title: "Lezyonun temel lokalizasyonu neresidir?",
+            options: ["Dil", "Yanak", "Damak", "Diş Eti", "Dudak", "Ağız Tabanı", "Çene Kemiği"]
+        },
+        {
+            id: "semptom",
+            title: "En belirgin semptom hangisidir?",
+            options: ["Ağrısız Şişlik", "Ağrılı Yaralar", "Kanama", "Renk Değişikliği", "Uyuşukluk", "Kaşıntı", "Kötü Koku"]
+        },
+        {
+            id: "cinsiyet",
+            title: "Hastanın cinsiyeti nedir?",
+            options: ["Erkek", "Kadın", "Fark Etmez"]
+        },
+        {
+            id: "yas",
+            title: "Hasta hangi yaş grubunda?",
+            options: ["Çocuk (0-12)", "Genç (13-24)", "Erişkin (25-50)", "Yaşlı (50+)"]
+        },
+        {
+            id: "gorunus",
+            title: "Lezyonun görünüşü nasıl tanımlanabilir?",
+            options: ["Kırmızı/Eritematöz", "Beyaz/Keratotik", "Ülseratif", "Kistik/Flüktuan", "Sert/Radyopak", "Vezikülobüllöz"]
+        }
+    ];
 
-    // 1. SQL.js ve Veritabanını Başlat
     async function init() {
         try {
             const sqlPromise = initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
             const dataPromise = fetch("TANISIST..db").then(res => res.arrayBuffer());
             const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
             db = new SQL.Database(new Uint8Array(buf));
-            document.getElementById('loading').style.display = 'none';
+            
+            document.getElementById('loading-overlay').style.display = 'none';
+            renderQuestion();
         } catch (e) {
-            document.getElementById('loading').innerText = "Hata: Veritabanı dosyası bulunamadı!";
+            document.getElementById('loading-text').innerText = "Hata: Veritabanı yüklenemedi!";
+            console.error(e);
         }
     }
-    init();
 
-    // 2. Arama Fonksiyonu
-    function search() {
-        const input = document.getElementById('user-input');
-        const chat = document.getElementById('chat');
-        const txt = input.value.trim();
-        if (!txt || !db) return;
+    function renderQuestion() {
+        const container = document.getElementById('quiz-flow');
+        const q = questions[currentStep];
+        const progress = ((currentStep + 1) / questions.length) * 100;
+        document.getElementById('progress').style.width = progress + "%";
 
-        chat.innerHTML += `<div class="msg user">${txt}</div>`;
+        let html = `
+            <div class="step active">
+                <div class="question-title">${q.title}</div>
+                <div class="options-grid">
+                    ${q.options.map(opt => `
+                        <div class="option-btn" onclick="selectOption('${q.id}', '${opt}')">${opt}</div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
         
-        // Tüm tabloları tara
-        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-        let found = false;
-        let response = `<div class="msg bot"><b>Bulunan Sonuçlar:</b><br>`;
+        container.innerHTML = html;
+    }
 
-        if (tables.length > 0) {
-            tables[0].values.forEach(tRow => {
-                const tableName = tRow[0];
-                const cols = db.exec(`PRAGMA table_info('${tableName}')`)[0].values.map(c => c[1]);
-                const where = cols.map(c => `"${c}" LIKE '%${txt}%'`).join(" OR ");
-                
-                const res = db.exec(`SELECT * FROM "${tableName}" WHERE ${where}`);
-                if (res.length > 0) {
-                    found = true;
-                    res[0].values.forEach(row => {
-                        response += `<div class="card">
-                            <strong>${row[0]}</strong> <small>(${tableName.replace(/_/g, ' ')})</small><br>
-                            <small>${row.slice(1, 4).join(" | ").substring(0, 100)}...</small>
-                        </div>`;
+    function selectOption(qId, value) {
+        answers[qId] = value;
+        
+        // Animasyonlu geçiş
+        const currentEl = document.querySelector('.step.active');
+        currentEl.style.animation = "fadeOut 0.4s ease forwards";
+        
+        setTimeout(() => {
+            if (currentStep < questions.length - 1) {
+                currentStep++;
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        }, 400);
+    }
+
+    function showResults() {
+        document.getElementById('quiz-flow').style.display = 'none';
+        document.getElementById('results-view').style.display = 'block';
+        document.getElementById('progress').style.width = "100%";
+
+        const resultsList = document.getElementById('results-list');
+        resultsList.innerHTML = "";
+
+        const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        let scoredDiagnosis = [];
+
+        tables[0].values.forEach(tRow => {
+            const tableName = tRow[0];
+            const cols = db.exec(`PRAGMA table_info('${tableName}')`)[0].values.map(c => c[1]);
+            
+            const rows = db.exec(`SELECT * FROM "${tableName}"`);
+            if (rows.length > 0) {
+                rows[0].values.forEach(row => {
+                    let score = 0;
+                    let matches = [];
+
+                    // Puanlama Mantığı
+                    Object.keys(answers).forEach(key => {
+                        const val = answers[key].toLowerCase();
+                        // Satırdaki tüm hücreleri tara
+                        row.forEach(cell => {
+                            if (cell && cell.toString().toLowerCase().includes(val)) {
+                                score += 20; // Her eşleşme için puan
+                                matches.push(answers[key]);
+                            }
+                        });
                     });
-                }
+
+                    if (score > 0) {
+                        scoredDiagnosis.push({
+                            name: row[0],
+                            table: tableName,
+                            score: score,
+                            data: row,
+                            cols: cols,
+                            matches: Array.from(new Set(matches))
+                        });
+                    }
+                });
+            }
+        });
+
+        // En yüksek puana göre sırala
+        scoredDiagnosis.sort((a, b) => b.score - a.score);
+
+        if (scoredDiagnosis.length === 0) {
+            resultsList.innerHTML = "<p style='text-align:center;'>Üzgünüz, bu kriterlere uygun bir tanı bulunamadı.</p>";
+        } else {
+            scoredDiagnosis.slice(0, 10).forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'diagnosis-card';
+                card.innerHTML = `
+                    <div class="card-title">
+                        ${item.name}
+                        <span class="match-tag">${item.score} Puan</span>
+                    </div>
+                    <div class="card-detail">
+                        <strong>Grup:</strong> ${item.table}<br>
+                        <strong>Eşleşen Bulgular:</strong> ${item.matches.join(', ')}<br>
+                        <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
+                        ${item.data[5] ? `<strong>Klinik:</strong> ${item.data[5].substring(0, 150)}...` : ''}
+                    </div>
+                `;
+                resultsList.appendChild(card);
             });
         }
-
-        if (!found) response += "Eşleşen tıbbi kayıt bulunamadı.";
-        response += "</div>";
-        chat.innerHTML += response;
-        input.value = "";
-        chat.scrollTop = chat.scrollHeight;
     }
+
+    function restart() {
+        currentStep = 0;
+        answers = {};
+        document.getElementById('quiz-flow').style.display = 'block';
+        document.getElementById('results-view').style.display = 'none';
+        renderQuestion();
+    }
+
+    init();
 </script>
+
 </body>
 </html>
