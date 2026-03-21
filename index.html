@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anamnez Tanı Asistanı - Gelişmiş Sorgulama</title>
+    <title>Anamnez Tanı Asistanı - Hassas Ayırıcı Tanı</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
         :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --success: #27ae60; --border: #dcdde1; --accent: #e67e22; --danger: #e74c3c; }
@@ -11,7 +11,7 @@
         
         header { position: absolute; top: 0; width: 100%; background: var(--p); color: white; padding: 1rem; text-align: center; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
         
-        #app-container { width: 95%; max-width: 850px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; position: relative; min-height: 600px; display: flex; flex-direction: column; justify-content: center; }
+        #app-container { width: 95%; max-width: 900px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 2rem; position: relative; min-height: 650px; display: flex; flex-direction: column; justify-content: center; }
 
         .step { display: none; animation: slideIn 0.5s ease forwards; }
         .step.active { display: block; }
@@ -21,16 +21,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes fadeOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-20px); }
-        }
-
         .question-title { font-size: 1.4rem; color: var(--p); margin-bottom: 0.5rem; font-weight: 700; text-align: center; }
         .question-desc { font-size: 0.95rem; color: #7f8c8d; text-align: center; margin-bottom: 1.5rem; }
         
-        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; max-height: 350px; overflow-y: auto; padding: 5px; }
-        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 12px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; min-height: 50px; }
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px; }
+        .option-btn { background: #f8f9fa; border: 2px solid #eee; padding: 12px; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s; font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; min-height: 55px; }
         .option-btn:hover { border-color: var(--a); background: #ebf5fb; color: var(--a); transform: translateY(-1px); }
         .option-btn.selected { background: var(--a); color: white; border-color: var(--a); box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2); }
 
@@ -43,25 +38,21 @@
         .diagnosis-card { background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--a); padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem; animation: fadeIn 0.5s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid #f1f2f6; padding-bottom: 10px; }
-        .card-title-group { display: flex; flex-direction: column; }
         .card-title { font-weight: 800; color: var(--p); font-size: 1.2rem; }
-        .card-category { font-size: 0.7rem; color: var(--a); font-weight: 700; text-transform: uppercase; }
         
-        .match-score-badge { display: flex; flex-direction: column; align-items: center; background: #f0f7ff; padding: 6px 12px; border-radius: 10px; }
         .score-val { font-size: 1.1rem; font-weight: 800; color: var(--a); }
 
         .match-badges-container { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
         .match-badge { font-size: 0.65rem; padding: 3px 8px; border-radius: 15px; font-weight: 700; border: 1px solid transparent; }
         
         .badge-lokalizasyon { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+        .badge-vitalite { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
         .badge-semptom { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
-        .badge-klinik { background: #f3e5f5; color: #7b1fa2; border-color: #e1bee7; }
-        .badge-demografik { background: #e1f5fe; color: #0277bd; border-color: #b3e5fc; }
         .badge-radyoloji { background: #efebe9; color: #4e342e; border-color: #d7ccc8; }
 
         .card-detail { font-size: 0.85rem; color: #2d3436; line-height: 1.5; }
         .detail-row { margin-bottom: 6px; display: flex; gap: 10px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
-        .detail-label { min-width: 110px; font-weight: 700; color: #7f8c8d; font-size: 0.7rem; text-transform: uppercase; }
+        .detail-label { min-width: 120px; font-weight: 700; color: #7f8c8d; font-size: 0.7rem; text-transform: uppercase; }
         
         .highlight { background: #fff59d; padding: 0 2px; border-radius: 2px; font-weight: 600; }
 
@@ -77,20 +68,21 @@
 
 <div id="loading-overlay">
     <div class="spinner"></div>
-    <div id="loading-text" style="margin-top:15px; font-weight:600;">Veritabanı Hazırlanıyor...</div>
+    <div id="loading-text" style="margin-top:15px; font-weight:600;">Hassas Algoritma Yükleniyor...</div>
 </div>
 
-<header>DENTAL ANAMNEZ VE TANI DESTEK</header>
+<header>DENTAL ANAMNEZ VE TANI DESTEK SİSTEMİ</header>
 
 <div id="app-container">
     <div id="quiz-flow">
-        <!-- Sorular Buraya Gelecek -->
+        <!-- Dinamik Sorular -->
     </div>
     
     <div id="results-view" style="display: none;">
-        <h3 style="text-align: center; color: var(--p); margin-bottom: 5px;">Olası Tanılar</h3>
+        <h3 style="text-align: center; color: var(--p); margin-bottom: 5px;">Ayırıcı Tanı Sonuçları</h3>
+        <p style="text-align: center; font-size: 0.8rem; color: #666;">Seçtiğiniz kriterlere göre en yüksek uyum gösteren tablolar listelenmiştir.</p>
         <div id="results-list"></div>
-        <button class="btn btn-next" style="margin: 1.5rem auto; display: block; width: 220px;" onclick="restart()">Yeni Analiz</button>
+        <button class="btn btn-next" style="margin: 1.5rem auto; display: block; width: 220px;" onclick="restart()">Yeni Analiz Başlat</button>
     </div>
 
     <div class="progress-bar-container">
@@ -103,65 +95,54 @@
     let currentStep = 0;
     let selectedAnswers = {}; 
     
+    // Soruları en efektif ayırıcı tanı parametrelerine göre düzenledim
     const questions = [
         {
-            id: "demografik",
-            title: "Hasta Bilgileri",
-            desc: "Yaş ve cinsiyet durumunu belirtiniz.",
+            id: "vitalite",
+            title: "Vitalite ve Diş İlişkisi",
+            desc: "Radiküler kist (devital) ve Ameloblastom (vital) ayrımı için en kritik soru.",
             options: [
-                { val: "Çocuk", label: "Çocuk", key: "Görüldüğü Yaş Aralığı", cat: "demografik" },
-                { val: "Genç", label: "Genç", key: "Görüldüğü Yaş Aralığı", cat: "demografik" },
-                { val: "Erişkin", label: "Erişkin", key: "Görüldüğü Yaş Aralığı", cat: "demografik" },
-                { val: "Yaşlı", label: "Yaşlı", key: "Görüldüğü Yaş Aralığı", cat: "demografik" },
-                { val: "Erkek", label: "Erkek", key: "Cinsiyet", cat: "demografik" },
-                { val: "Kadın", label: "Kadın", key: "Cinsiyet", cat: "demografik" }
+                { val: "Devital", label: "Devital Diş (Kanal Tedavili/Çürük)", key: "Etiyolojisi", cat: "vitalite", weight: 50 },
+                { val: "Vital", label: "Vital Diş (Canlı)", key: "Klinik Özellikleri", cat: "vitalite", weight: 50 },
+                { val: "Gömülü", label: "Gömülü Diş İlişkili", key: "Özel Notlar", cat: "vitalite", weight: 30 },
+                { val: "Dişsiz", label: "Dişsiz Bölge", key: "Lokalizasyon", cat: "vitalite", weight: 20 }
             ]
         },
         {
             id: "lokalizasyon",
-            title: "Lokalizasyon (Bölge)",
-            desc: "Yumuşak doku ve çene kemiği bölgelerini seçiniz.",
+            title: "Hassas Lokalizasyon",
+            desc: "Lezyonun tam konumunu belirleyin.",
             options: [
-                { val: "Mandibula", label: "Mandibula (Genel)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Maksilla", label: "Maksilla (Genel)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Anterior", label: "Anterior (Ön Bölge)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Posterior", label: "Posterior (Arka Bölge)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Ramus", label: "Ramus (Mandibula)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Açı", label: "Angulus (Çene Açısı)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Simfiz", label: "Simfiz / Parasimfiz", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Kondil", label: "Kondil / Koronoid", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Dil", label: "Dil", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Yanak", label: "Yanak (Mukoza)", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Damak", label: "Damak", key: "Lokalizasyon", cat: "lokalizasyon" },
-                { val: "Diş Eti", label: "Diş Eti / Gingiva", key: "Lokalizasyon", cat: "lokalizasyon" }
+                { val: "Ramus", label: "Mandibula Ramus", key: "Lokalizasyon", cat: "lokalizasyon", weight: 30 },
+                { val: "Açı", label: "Angulus (Köşe)", key: "Lokalizasyon", cat: "lokalizasyon", weight: 30 },
+                { val: "Molar", label: "Molar Bölge", key: "Lokalizasyon", cat: "lokalizasyon", weight: 25 },
+                { val: "Anterior", label: "Anterior (Ön)", key: "Lokalizasyon", cat: "lokalizasyon", weight: 25 },
+                { val: "Maksilla", label: "Maksilla", key: "Lokalizasyon", cat: "lokalizasyon", weight: 20 },
+                { val: "Simfiz", label: "Simfiz", key: "Lokalizasyon", cat: "lokalizasyon", weight: 20 }
             ]
         },
         {
-            id: "klinik_radyoloji",
-            title: "Görünüm Özellikleri",
-            desc: "Klinik muayene ve radyolojik bulguları seçiniz.",
+            id: "radyoloji_detay",
+            title: "Radyolojik Karakter",
+            desc: "Kenar yapısı ve iç görünüm ayırıcı tanıda esastır.",
             options: [
-                { val: "Kırmızı", label: "Kırmızı (Eritem)", key: "Klinik Özellikleri", cat: "klinik" },
-                { val: "Beyaz", label: "Beyaz (Keratoz)", key: "Klinik Özellikleri", cat: "klinik" },
-                { val: "Ülser", label: "Ülser / Erezyon", key: "Klinik Özellikleri", cat: "klinik" },
-                { val: "Radyopak", label: "Radyopak (Beyaz)", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji" },
-                { val: "Radyolüsent", label: "Radyolüsent (Siyah)", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji" },
-                { val: "Kistik", label: "Kistik / Ekspansil", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji" },
-                { val: "Sabun", label: "Sabun Köpüğü", key: "Özel Benzetmesi", cat: "radyoloji" },
-                { val: "Güneş", label: "Güneş Işınları", key: "Özel Benzetmesi", cat: "radyoloji" }
+                { val: "Multiloküler", label: "Multiloküler (Çok Odalı)", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji", weight: 45 },
+                { val: "Uniloküler", label: "Uniloküler (Tek Odalı)", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji", weight: 40 },
+                { val: "Sabun", label: "Sabun Köpüğü Görünümü", key: "Özel Benzetmesi", cat: "radyoloji", weight: 50 },
+                { val: "Kök Rezorpsiyonu", label: "Belirgin Kök Rezorpsiyonu", key: "Özel Notlar", cat: "radyoloji", weight: 35 },
+                { val: "Sklerotik", label: "Sklerotik Kenar Hattı", key: "Radyolojik Görüntü Özellikleri", cat: "radyoloji", weight: 30 },
+                { val: "Ekspansiyon", label: "Bukko-Lingual Ekspansiyon", key: "Klinik Özellikleri", cat: "radyoloji", weight: 35 }
             ]
         },
         {
-            id: "semptom_notlar",
-            title: "Semptom ve Seyir",
-            desc: "Hastanın şikayetleri ve diğer notlar.",
+            id: "demografik",
+            title: "Hasta Profili",
+            desc: "Yaş grupları bazı lezyonlar için karakteristiktir.",
             options: [
-                { val: "Ağrı", label: "Ağrı / Hassasiyet", key: "Semptomları", cat: "semptom" },
-                { val: "Kanama", label: "Kanama / Eksüda", key: "Semptomları", cat: "semptom" },
-                { val: "Uyuşukluk", label: "Uyuşukluk (Parestezi)", key: "Semptomları", cat: "semptom" },
-                { val: "Mobilite", label: "Dişlerde Mobilite", key: "Semptomları", cat: "semptom" },
-                { val: "Biyopsi", label: "Biyopsi Gerekli", key: "Özel Notlar", cat: "radyoloji" },
-                { val: "Malign", label: "Malignite Şüphesi", key: "Özel Notlar", cat: "radyoloji" }
+                { val: "20-40", label: "20-40 Yaş Arası", key: "Görüldüğü Yaş Aralığı", cat: "demografik", weight: 15 },
+                { val: "Çocuk", label: "Çocuk / Adolesan", key: "Görüldüğü Yaş Aralığı", cat: "demografik", weight: 15 },
+                { val: "Yaşlı", label: "50 Yaş Üstü", key: "Görüldüğü Yaş Aralığı", cat: "demografik", weight: 15 },
+                { val: "Ağrısız", label: "Ağrısız Yavaş Büyüme", key: "Semptomları", cat: "semptom", weight: 20 }
             ]
         }
     ];
@@ -175,7 +156,7 @@
             document.getElementById('loading-overlay').style.display = 'none';
             renderQuestion();
         } catch (e) {
-            document.getElementById('loading-text').innerText = "Hata: Veritabanı bulunamadı!";
+            document.getElementById('loading-text').innerText = "Hata: Veritabanı dosyası yüklenemedi.";
         }
     }
 
@@ -197,7 +178,7 @@
                 </div>
                 <div class="nav-buttons">
                     ${currentStep > 0 ? `<button class="btn btn-back" onclick="prevStep()">Geri</button>` : '<div></div>'}
-                    <button class="btn btn-next" onclick="nextStep()">${currentStep === questions.length - 1 ? 'Analiz Et' : 'Devam Et'}</button>
+                    <button class="btn btn-next" onclick="nextStep()">${currentStep === questions.length - 1 ? 'Analizi Tamamla' : 'Sonraki Soru'}</button>
                 </div>
             </div>
         `;
@@ -250,31 +231,28 @@
 
             if (rows.length > 0) {
                 rows[0].values.forEach(row => {
-                    let score = 0;
+                    let totalScore = 0;
                     let matches = [];
 
                     flatAnswers.forEach(ans => {
                         const colIdx = cols.indexOf(ans.key);
                         if (colIdx !== -1 && row[colIdx]) {
-                            const dbValue = row[colIdx].toString();
+                            const dbVal = row[colIdx].toString().toLowerCase();
+                            const searchVal = ans.val.toLowerCase();
                             
-                            if (ans.key === "Cinsiyet") {
-                                if (dbValue === "K=E") { score += 10; matches.push({label: "Fark etmez", cat: ans.cat}); }
-                                else if (ans.val === "Kadın" && dbValue.includes("K>E")) { score += 30; matches.push({label: "Kadınlarda Sık", cat: ans.cat}); }
-                                else if (ans.val === "Erkek" && dbValue.includes("K<E")) { score += 30; matches.push({label: "Erkeklerde Sık", cat: ans.cat}); }
-                            } 
-                            else if (dbValue.toLowerCase().includes(ans.val.toLowerCase())) {
-                                score += 20;
+                            // Radiküler Kist ve Ameloblastom arasındaki ağırlıklı eşleşme
+                            if (dbVal.includes(searchVal)) {
+                                totalScore += ans.weight || 20;
                                 matches.push({label: ans.label, cat: ans.cat});
                             }
                         }
                     });
 
-                    if (score > 0) {
+                    if (totalScore > 0) {
                         scoredDiagnosis.push({
                             name: row[0],
                             table: tableName,
-                            score: score,
+                            score: totalScore,
                             data: row,
                             cols: cols,
                             matches: matches
@@ -284,46 +262,41 @@
             }
         });
 
+        // Skorları normalize et ve sırala
         scoredDiagnosis.sort((a, b) => b.score - a.score);
 
-        scoredDiagnosis.slice(0, 12).forEach(item => {
+        if (scoredDiagnosis.length === 0) {
+            resultsList.innerHTML = "<p style='text-align:center; padding:20px;'>Eşleşen tanı bulunamadı. Lütfen kriterleri genişletin.</p>";
+            return;
+        }
+
+        scoredDiagnosis.slice(0, 10).forEach(item => {
             const card = document.createElement('div');
             card.className = 'diagnosis-card';
             
-            const highlightText = (text) => {
-                let highlighted = text;
-                flatAnswers.forEach(ans => {
-                    const regex = new RegExp(`(${ans.val})`, 'gi');
-                    highlighted = highlighted.replace(regex, '<span class="highlight">$1</span>');
-                });
-                return highlighted;
-            };
-
-            let details = "";
-            item.cols.forEach((cName, idx) => {
-                if (item.data[idx] && idx > 0 && idx < 12) {
-                    details += `
+            let detailsHtml = "";
+            item.cols.forEach((c, idx) => {
+                if (item.data[idx] && idx > 0 && idx < 10) {
+                    detailsHtml += `
                         <div class="detail-row">
-                            <span class="detail-label">${cName}</span>
-                            <span class="detail-val">${highlightText(item.data[idx].toString())}</span>
+                            <span class="detail-label">${c}</span>
+                            <span class="detail-val">${item.data[idx]}</span>
                         </div>`;
                 }
             });
 
             card.innerHTML = `
                 <div class="card-header">
-                    <div class="card-title-group">
-                        <span class="card-category">${item.table.replace(/_/g, ' ')}</span>
-                        <span class="card-title">${item.name}</span>
+                    <div>
+                        <div style="font-size:0.7rem; color:var(--a); font-weight:700;">${item.table.replace(/_/g, ' ')}</div>
+                        <div class="card-title">${item.name}</div>
                     </div>
-                    <div class="match-score-badge">
-                        <span class="score-val">%${Math.min(item.score, 100)}</span>
-                    </div>
+                    <div class="score-val">%${Math.min(item.score, 100)} Uyum</div>
                 </div>
                 <div class="match-badges-container">
                     ${item.matches.map(m => `<span class="match-badge badge-${m.cat}">${m.label}</span>`).join('')}
                 </div>
-                <div class="card-detail">${details}</div>
+                <div class="card-detail">${detailsHtml}</div>
             `;
             resultsList.appendChild(card);
         });
