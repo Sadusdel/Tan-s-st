@@ -3,434 +3,387 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Anamnez Tanı Asistanı - Gelişmiş Teşhis Sistemi</title>
+    <title>Tanı Sistemi - Klinik Karar Destek</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
         :root { 
-            --primary: #2563eb; 
-            --primary-light: #eff6ff;
-            --bg: #f8fafc;
+            --primary: #0284c7; 
+            --primary-dark: #0369a1;
+            --accent: #f59e0b;
+            --bg: #f1f5f9;
             --surface: #ffffff;
-            --text-main: #0f172a;
+            --text-main: #1e293b;
             --text-muted: #64748b;
-            --radius: 18px;
-            --safe-bottom: max(16px, env(safe-area-inset-bottom));
+            --radius: 16px;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-            background: var(--bg);
-            margin: 0; 
-            height: 100vh;
-            color: var(--text-main);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: var(--bg); margin: 0; height: 100vh;
+            color: var(--text-main); overflow: hidden; display: flex; justify-content: center;
         }
 
         #app-container { 
-            width: 100%; 
-            max-width: 500px; 
-            background: var(--surface);
-            display: flex;
-            flex-direction: column;
-            position: relative;
+            width: 100%; max-width: 500px; background: var(--surface);
+            display: flex; flex-direction: column; position: relative;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
         }
 
-        .progress-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-            background: #f1f5f9; z-index: 50;
+        .step-indicator {
+            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: #e2e8f0; z-index: 50;
         }
-        .progress-bar {
+        .step-progress {
             height: 100%; background: var(--primary); width: 0%;
-            transition: width 0.4s ease;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            padding-top: calc(30px + env(safe-area-inset-top));
+            flex: 1; overflow-y: auto; padding: 24px;
+            padding-top: calc(40px + env(safe-area-inset-top));
             scrollbar-width: none;
         }
 
-        .header-section { margin-bottom: 1.5rem; }
-        .title { font-size: 1.4rem; font-weight: 800; margin: 0 0 8px 0; color: #1e293b; }
-        .subtitle { color: var(--text-muted); font-size: 0.95rem; line-height: 1.4; }
-
+        .cluster-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        }
         .cluster-tag {
-            display: inline-block;
-            padding: 4px 10px;
-            background: var(--primary-light);
-            color: var(--primary);
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 12px;
+            background: #e0f2fe; color: #0369a1; padding: 4px 10px;
+            border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
         }
 
-        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 30px; }
+        .question-title { font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin: 0 0 10px 0; }
+        .question-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; }
 
-        .option-card {
-            background: #fff;
-            border: 2px solid #f1f5f9;
-            padding: 16px;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 600;
-            font-size: 0.95rem;
+        .options-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+
+        .option-item {
+            border: 2px solid #f1f5f9; border-radius: var(--radius);
+            padding: 18px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 14px; position: relative;
+        }
+        .option-item:hover { border-color: #e2e8f0; background: #f8fafc; }
+        .option-item.selected { 
+            border-color: var(--primary); background: #f0f9ff; 
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
         }
 
-        .option-card.selected {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
+        .check-box {
+            width: 22px; height: 22px; border: 2px solid #cbd5e1;
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
         }
+        .option-item.selected .check-box {
+            background: var(--primary); border-color: var(--primary);
+        }
+        .option-text { font-weight: 600; font-size: 1rem; color: #334155; }
 
-        .footer-nav {
-            padding: 16px 20px;
-            padding-bottom: calc(var(--safe-bottom) + 10px);
-            border-top: 1px solid #f1f5f9;
-            display: flex;
-            gap: 10px;
-            background: white;
+        .footer {
+            padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            border-top: 1px solid #f1f5f9; background: white; display: flex; gap: 12px;
         }
 
         .btn {
-            flex: 1;
-            padding: 16px;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: opacity 0.2s;
+            flex: 1; padding: 18px; border-radius: 14px; font-weight: 700;
+            border: none; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 8px; transition: all 0.2s;
         }
-
-        .btn-prev { background: #f1f5f9; color: #475569; flex: 0 0 60px; }
+        .btn-back { background: #f1f5f9; color: #475569; flex: 0 0 65px; }
         .btn-next { background: var(--primary); color: white; }
-        .btn:disabled { opacity: 0.3; pointer-events: none; }
+        .btn:disabled { opacity: 0.4; filter: grayscale(1); }
 
-        .result-item {
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: #fff;
-            position: relative;
-            overflow: hidden;
+        .result-card {
+            border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px;
+            margin-bottom: 16px; position: relative; background: white;
         }
-
-        .match-badge {
-            position: absolute; right: 0; top: 0;
-            padding: 4px 12px; font-size: 0.7rem; font-weight: 900;
-            background: var(--primary); color: white; border-bottom-left-radius: 12px;
+        .score-badge {
+            position: absolute; right: 15px; top: 15px;
+            background: #fef3c7; color: #92400e; padding: 4px 10px;
+            border-radius: 12px; font-weight: 900; font-size: 0.75rem;
         }
 
         #loader {
-            position: fixed; inset: 0; background: #fff; z-index: 1000;
+            position: fixed; inset: 0; background: white; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { width: 45px; height: 45px; border: 4px solid #f1f5f9; border-top-color: var(--primary); border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
+
+        .spot-hint {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #fff7ed; color: #c2410c; padding: 6px 12px;
+            border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin-top: 12px;
+            border: 1px solid #ffedd5;
+        }
     </style>
 </head>
 <body>
 
 <div id="loader">
-    <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 600; color: #64748b;">Klinik Veriler Yükleniyor...</p>
+    <div class="spin"></div>
+    <p style="margin-top:20px; font-weight:700; color:#475569">Sistem Yapılandırılıyor...</p>
 </div>
 
 <div id="app-container">
-    <div class="progress-container"><div class="progress-bar" id="p-bar"></div></div>
-    <div id="view-content" class="content-area"></div>
-    <div id="nav-footer" class="footer-nav"></div>
+    <div class="step-indicator"><div class="step-progress" id="progress"></div></div>
+    <div id="view" class="content-area"></div>
+    <div id="footer" class="footer"></div>
 </div>
 
 <script>
     let db = null;
     let step = 0;
-    let answers = {};
-    let allData = [];
+    let selections = {};
+    let allRecords = [];
 
-    // Veritabanı hücrelerini kapsayan genişletilmiş soru akışı
+    // Verilen listeye göre optimize edilmiş akış
     const workflow = [
         {
             id: "demografik",
-            cluster: "Profil",
+            cluster: "Filtreleme",
             title: "Hasta Profili",
-            desc: "Demografik veriler tanı olasılıklarını daraltır.",
+            desc: "Yaş ve cinsiyet bazı lezyonları istatistiksel olarak dışlar.",
             options: [
-                { val: "Çocuk", label: "Çocuk / Bebek", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Genç", label: "Genç Erişkin", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Erişkin", label: "Orta Yaş / Erişkin", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Yaşlı", label: "Yaşlı", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Erkek", label: "Erkek", key: "Cinsiyet" },
-                { val: "Kadın", label: "Kadın", key: "Cinsiyet" }
+                { val: "Çocuk", label: "Çocuk / Adölesan (10-20)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Genç", label: "Genç Erişkin (20-40)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Erişkin", label: "Orta Yaş (40-60)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Yaşlı", label: "Yaşlı (60+)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Kadın", label: "Kadın", key: "Cinsiyet" },
+                { val: "Erkek", label: "Erkek", key: "Cinsiyet" }
             ]
         },
         {
             id: "lokalizasyon",
-            cluster: "Bölge",
-            title: "Lezyonun Yerleşimi",
-            desc: "Anatomik lokalizasyon ayırıcı tanıda kritiktir.",
+            cluster: "Konum",
+            title: "Lezyon Nerede?",
+            desc: "Hücre veritabanındaki lokalizasyon eşleşmeleri aranıyor.",
             options: [
-                { val: "Dil", label: "Dil (Dorsum, Lateral, Ventral)", key: "Lokalizasyon" },
+                { val: "Bukkal", label: "Bukkal Mukoza / Yanak", key: "Lokalizasyon" },
+                { val: "Dil", label: "Dil (Lateral / Ventral)", key: "Lokalizasyon" },
                 { val: "Damak", label: "Sert / Yumuşak Damak", key: "Lokalizasyon" },
-                { val: "Dudak", label: "Dudak Mukozası / Vermilyon", key: "Lokalizasyon" },
-                { val: "Dişeti", label: "Gingiva (Dişeti)", key: "Lokalizasyon" },
-                { val: "Yanak", label: "Bukkal Mukoza", key: "Lokalizasyon" },
-                { val: "Taban", label: "Ağız Tabanı", key: "Lokalizasyon" },
-                { val: "Komisür", label: "Ağız Köşesi (Komisür)", key: "Lokalizasyon" }
-            ]
-        },
-        {
-            id: "klinik_karakter",
-            cluster: "Görünüm",
-            title: "Temel Klinik Karakter",
-            desc: "Lezyonun fiziksel yapısını nasıl tanımlarsınız?",
-            options: [
-                { val: "Beyaz", label: "Beyaz / Keratotik / Plak", key: "Klinik Özellikleri" },
-                { val: "Kırmızı", label: "Kırmızı / Eritematöz", key: "Klinik Özellikleri" },
-                { val: "Ülser", label: "Ülserasyon / Erozyon / Atrofi", key: "Klinik Özellikleri" },
-                { val: "Vezikül", label: "Vezikül / Bül / Kabarcık", key: "Klinik Özellikleri" },
-                { val: "Pigment", label: "Kahverengi / Siyah / Mor (Pigmente)", key: "Klinik Özellikleri" },
-                { val: "Sarı", label: "Sarımsı / Püstüler", key: "Klinik Özellikleri" }
-            ]
-        },
-        {
-            id: "morfoloji",
-            cluster: "Morfoloji",
-            title: "Yüzey ve Yapı",
-            desc: "Lezyonun yüzey dokusu ve büyüme şekli.",
-            options: [
-                { val: "Ekzofitik", label: "Dışa Doğru Büyüyen (Ekzofitik)", key: "Klinik Özellikleri" },
-                { val: "Endofitik", label: "İçe Doğru Çökük (Endofitik)", key: "Klinik Özellikleri" },
-                { val: "Saplı", label: "Saplı (Pedünküllü)", key: "Klinik Özellikleri" },
-                { val: "Geniş tabanlı", label: "Geniş Tabanlı (Sesil)", key: "Klinik Özellikleri" },
-                { val: "Verriköz", label: "Karnabahar / Siğil Benzeri", key: "Klinik Özellikleri" },
-                { val: "Fissür", label: "Yarık / Çatlak Tarzında", key: "Klinik Özellikleri" }
-            ]
-        },
-        {
-            id: "semptomlar",
-            cluster: "Semptom",
-            title: "Eşlik Eden Şikayetler",
-            desc: "Hastanın subjektif deneyimi nedir?",
-            options: [
-                { val: "Asemptomatik", label: "Şikayet Yok (Tesadüfi)", key: "Semptomları" },
-                { val: "Ağrı", label: "Ağrı veya Yanma Hissi", key: "Semptomları" },
-                { val: "Uyuş", label: "Uyuşukluk (Parestezi)", key: "Semptomları" },
-                { val: "Kanam", label: "Kolayca Kanama", key: "Semptomları" },
-                { val: "Koku", label: "Kötü Koku (Halitosis)", key: "Semptomları" },
-                { val: "Disvaji", label: "Yutma Güçlüğü", key: "Semptomları" }
-            ]
-        },
-        {
-            id: "radyoloji",
-            cluster: "Görüntüleme",
-            title: "Radyolojik Bulgular",
-            desc: "Eğer varsa, radyolojik gruptaki baskın özellik.",
-            options: [
-                { val: "YOK", label: "Radyolojik Bulgu Yok", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Radyolüsent", label: "Koyu Alan (Radyolüsent)", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Radyoopak", label: "Beyaz Alan (Radyoopak)", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Miks", label: "Karışık (Miks Yapı)", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Sınır", label: "Sınırları Belirgin", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "İnvaziv", label: "Sınırları Belirsiz / Düzensiz", key: "Radyolojik Görüntü Özellikleri" }
+                { val: "Dişeti", label: "Dişeti / Jeneralize Büyüme", key: "Lokalizasyon" },
+                { val: "Mandibula", label: "Mandibula (Kemik)", key: "Lokalizasyon" },
+                { val: "Maksilla", label: "Maksilla (Kemik)", key: "Lokalizasyon" },
+                { val: "Taban", label: "Ağız Tabanı / Orta Hat", key: "Lokalizasyon" }
             ]
         },
         {
             id: "etiyoloji",
-            cluster: "Hikaye",
-            title: "Olası Hazırlayıcı Faktörler",
-            desc: "Lezyonun başlangıcına ne sebep olmuş olabilir?",
+            cluster: "Öykü",
+            title: "Tetikleyici Faktörler",
+            desc: "Olası nedenler ve hastanın hayat tarzı.",
             options: [
-                { val: "Travma", label: "Isırma / Protez Vurması / Keskin Diş", key: "Etiyolojisi" },
-                { val: "Sigara", label: "Sigara / Tütün Kullanımı", key: "Etiyolojisi" },
-                { val: "Alkol", label: "Alkol Tüketimi", key: "Etiyolojisi" },
-                { val: "Enfeksiyon", label: "Bakteriyel / Viral / Mantar", key: "Etiyolojisi" },
-                { val: "Genetik", label: "Ailevi / Kalıtımsal Geçiş", key: "Etiyolojisi" },
-                { val: "İdiyopatik", label: "Nedeni Bilinmeyen", key: "Etiyolojisi" }
+                { val: "Tütün", label: "Tütün (Sigara/Pipo/Alkol)", key: "Etiyolojisi" },
+                { val: "İritasyon", label: "Kronik İritasyon / Protez Vuruğu", key: "Etiyolojisi" },
+                { val: "Enfeksiyon", label: "Enfeksiyöz (Mantar/Virüs/Bakteri)", key: "Etiyolojisi" },
+                { val: "Genetik", label: "Genetik / Ailevi Öykü", key: "Etiyolojisi" },
+                { val: "Hormonal", label: "Hormonal / Sistemik (PTH/T3-T4)", key: "Etiyolojisi" },
+                { val: "Vitamin", label: "Vitamin Eksikliği", key: "Etiyolojisi" }
+            ]
+        },
+        {
+            id: "semptom",
+            cluster: "Şikayet",
+            title: "Hasta Ne Hissediyor?",
+            desc: "Subjektif semptomlar ve fonksiyon kayıpları.",
+            options: [
+                { val: "Ağrı", label: "Nevraljik Ağrı / Yanma Hissi", key: "Semptomları" },
+                { val: "Ağrısız", label: "Ağrısız Şişlik", key: "Semptomları" },
+                { val: "Tat", label: "Metalik Tat Bozukluğu", key: "Semptomları" },
+                { val: "Disfaji", label: "Yutma Güçlüğü / Disfaji", key: "Semptomları" },
+                { val: "Trismus", label: "Trismus (Ağız Açma Kısıtlılığı)", key: "Semptomları" },
+                { val: "Kanama", label: "Spontan Kanama", key: "Semptomları" }
+            ]
+        },
+        {
+            id: "klinik",
+            cluster: "Muayene",
+            title: "Klinik Görünüm",
+            desc: "Objektif muayene bulguları ve doku değişimi.",
+            options: [
+                { val: "Kazınabilen", label: "Kazınabilen Beyaz Plaklar", key: "Klinik Özellikleri" },
+                { val: "Kazınamayan", label: "Kazınamayan Beyaz Plaklar", key: "Klinik Özellikleri" },
+                { val: "Kadifemsi", label: "Kadifemsi / Kırmızı Yüzey", key: "Klinik Özellikleri" },
+                { val: "Hamur", label: "Hamur Kıvamında Kitle", key: "Klinik Özellikleri" },
+                { val: "Krut", label: "Kanlı Krutlar (Dudakta)", key: "Klinik Özellikleri" },
+                { val: "Pus", label: "Pus (İrin) Çıkışı", key: "Klinik Özellikleri" }
+            ]
+        },
+        {
+            id: "radyoloji",
+            cluster: "Teknik Terim",
+            title: "Görüntüleme Özellikleri",
+            desc: "Radyolojik sınırlara ve karakteristiğe odaklanın.",
+            options: [
+                { val: "Multiloküler", label: "Multiloküler Radyolüsensi", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Güve", label: "Güve Yeniği (Düzensiz Yıkım)", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Scalloping", label: "Scalloping (Kök Arası Uzanım)", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Opak", label: "Radyoopak Kalsifikasyonlar", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Dura", label: "Lamina Dura Kaybı", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Sekestr", label: "Sekestr (Ölü Kemik)", key: "Radyolojik Görüntü Özellikleri" }
+            ]
+        },
+        {
+            id: "benzetme",
+            cluster: "Spot Bilgi",
+            title: "Özel Benzetmeler",
+            desc: "Tanı koydurucu karakteristik benzetmeler.",
+            options: [
+                { val: "Kar fırtınası", label: "Kar Fırtınası (Driven Snow)", key: "Özel Benzetmesi" },
+                { val: "Sabun köpüğü", label: "Sabun Köpüğü / Bal Peteği", key: "Özel Benzetmesi" },
+                { val: "Süt kesiği", label: "Süt Kesiği / Süzme Peynir", key: "Özel Benzetmesi" },
+                { val: "Soğan zarı", label: "Soğan Zarı (Periost Reaksiyonu)", key: "Özel Benzetmesi" },
+                { val: "İnci", label: "İnci Tanesi", key: "Özel Benzetmesi" },
+                { val: "Hedef", label: "Hedef Tahtası (Bulls-eye)", key: "Özel Benzetmesi" }
             ]
         }
     ];
 
-    async function setup() {
+    async function init() {
         try {
             const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` });
             const response = await fetch('TANISIST..db');
             const buf = await response.arrayBuffer();
             db = new SQL.Database(new Uint8Array(buf));
 
-            const tables = ["Kırmızı Lezyonlar", "Yumuşak Doku Kistleri", "Beyaz Lezyonlar", "Kemik Patolojileri", "Tükürük Bezi Patolojileri"]; 
+            const tableNames = ["Kırmızı Lezyonlar", "Yumuşak Doku Kistleri", "Beyaz Lezyonlar", "Kemik Patolojileri", "Tükürük Bezi Patolojileri"];
             
-            tables.forEach(t => {
+            tableNames.forEach(tn => {
                 try {
-                    const res = db.exec(`SELECT * FROM "${t}"`);
-                    if(res.length) {
+                    const res = db.exec(`SELECT * FROM "${tn}"`);
+                    if (res.length) {
                         const cols = res[0].columns;
-                        res[0].values.forEach(row => {
-                            let obj = { _table: t };
-                            cols.forEach((c, i) => obj[c] = row[i]);
-                            allData.push(obj);
+                        res[0].values.forEach(v => {
+                            let rec = { _source: tn };
+                            cols.forEach((c, i) => rec[c] = v[i]);
+                            allRecords.push(rec);
                         });
                     }
-                } catch(e) { /* Tablo yoksa atla */ }
+                } catch(e) {}
             });
 
             document.getElementById('loader').style.display = 'none';
             render();
-        } catch (err) {
-            document.getElementById('loader').innerHTML = "<p>Veritabanı erişim hatası. Lütfen dosyayı kontrol edin.</p>";
-        }
+        } catch(e) { console.error(e); }
     }
 
     function render() {
-        const container = document.getElementById('view-content');
-        const footer = document.getElementById('nav-footer');
+        const view = document.getElementById('view');
+        const footer = document.getElementById('footer');
         const q = workflow[step];
         
-        document.getElementById('p-bar').style.width = ((step / workflow.length) * 100) + "%";
+        document.getElementById('progress').style.width = ((step / (workflow.length - 1)) * 100) + "%";
 
-        container.innerHTML = `
-            <div class="fade-in">
+        view.innerHTML = `
+            <div class="cluster-header">
                 <span class="cluster-tag">${q.cluster}</span>
-                <div class="header-section">
-                    <h2 class="title">${q.title}</h2>
-                    <p class="subtitle">${q.desc}</p>
-                </div>
-                <div class="options-grid">
-                    ${q.options.map((opt, i) => {
-                        const sel = answers[q.id]?.some(a => a.val === opt.val);
-                        return `
-                            <div class="option-card ${sel ? 'selected' : ''}" onclick="toggle('${q.id}', ${i})">
-                                <i data-lucide="${sel ? 'check-circle' : 'circle'}" style="width:20px; height:20px;"></i>
-                                ${opt.label}
+            </div>
+            <h2 class="question-title">${q.title}</h2>
+            <p class="question-desc">${q.desc}</p>
+            <div class="options-list">
+                ${q.options.map((o, idx) => {
+                    const active = selections[q.id]?.some(s => s.val === o.val);
+                    return `
+                        <div class="option-item ${active ? 'selected' : ''}" onclick="select('${q.id}', ${idx})">
+                            <div class="check-box">
+                                ${active ? '<i data-lucide="check" style="width:14px; color:white"></i>' : ''}
                             </div>
-                        `;
-                    }).join('')}
-                </div>
+                            <span class="option-text">${o.label}</span>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
 
         footer.innerHTML = `
-            ${step > 0 ? `<button class="btn btn-prev" onclick="move(-1)"><i data-lucide="arrow-left"></i></button>` : ''}
-            <button class="btn btn-next" onclick="move(1)" ${!answers[q.id]?.length ? 'disabled' : ''}>
-                ${step === workflow.length - 1 ? 'Sonuçları Gör' : 'Devam Et'}
+            ${step > 0 ? `<button class="btn btn-back" onclick="nav(-1)"><i data-lucide="chevron-left"></i></button>` : ''}
+            <button class="btn btn-next" onclick="nav(1)">
+                ${step === workflow.length - 1 ? 'Analizi Başlat' : 'Sonraki'}
+                <i data-lucide="${step === workflow.length - 1 ? 'activity' : 'chevron-right'}"></i>
             </button>
         `;
         lucide.createIcons();
-        container.scrollTo(0,0);
     }
 
-    function toggle(qId, idx) {
-        const opt = workflow.find(q => q.id === qId).options[idx];
-        if (!answers[qId]) answers[qId] = [];
-        const i = answers[qId].findIndex(a => a.val === opt.val);
-        if (i > -1) answers[qId].splice(i, 1);
-        else answers[qId].push(opt);
+    function select(qId, idx) {
+        const opt = workflow.find(w => w.id === qId).options[idx];
+        if (!selections[qId]) selections[qId] = [];
+        const exists = selections[qId].findIndex(s => s.val === opt.val);
+        if (exists > -1) selections[qId].splice(exists, 1);
+        else selections[qId].push(opt);
         render();
     }
 
-    function move(dir) {
-        if (dir === 1 && step === workflow.length - 1) finish();
+    function nav(dir) {
+        if (dir === 1 && step === workflow.length - 1) calculate();
         else { step += dir; render(); }
     }
 
-    function finish() {
-        document.getElementById('p-bar').style.width = "100%";
-        const container = document.getElementById('view-content');
-        const footer = document.getElementById('nav-footer');
+    function calculate() {
+        const view = document.getElementById('view');
+        const footer = document.getElementById('footer');
         
-        container.innerHTML = `
-            <div class="header-section">
-                <h2 class="title">Teşhis Analizi</h2>
-                <p class="subtitle">Veritabanı taraması sonucunda en kuvvetli eşleşmeler:</p>
-            </div>
-            <div id="results-list"></div>
-        `;
+        const userItems = Object.values(selections).flat();
+        let results = [];
 
-        const userSelection = Object.values(answers).flat();
-        let scores = [];
-
-        allData.forEach(item => {
+        allRecords.forEach(rec => {
             let score = 0;
-            let hits = [];
-            
-            userSelection.forEach(ans => {
-                const dbValue = String(item[ans.key] || "").toLowerCase();
-                const searchValue = ans.val.toLowerCase();
-                
-                if (dbValue.includes(searchValue)) {
-                    score += 20; 
-                    hits.push(ans.label);
+            let matchingTags = [];
+            const flatText = JSON.stringify(rec).toLowerCase();
+
+            userItems.forEach(u => {
+                // Sütun bazlı tam eşleşme (Yüksek Puan)
+                const colVal = String(rec[u.key] || "").toLowerCase();
+                if (colVal.includes(u.val.toLowerCase())) {
+                    score += 25;
+                    matchingTags.push(u.label);
+                } 
+                // Global metin araması (Düşük Puan)
+                else if (flatText.includes(u.val.toLowerCase())) {
+                    score += 10;
+                    if (!matchingTags.includes(u.label)) matchingTags.push(u.label);
                 }
             });
 
-            // Özel Benzetme ve Notlar taraması (Bonus Puan)
-            const globalText = JSON.stringify(item).toLowerCase();
-            userSelection.forEach(ans => {
-                if (globalText.includes(ans.val.toLowerCase()) && !hits.includes(ans.label)) {
-                    score += 5;
-                }
-            });
-
-            if (score > 15) { // Minimum eşleşme barajı
-                scores.push({ ...item, totalScore: score, hits });
-            }
+            if (score > 10) results.push({ ...rec, score, matchingTags });
         });
 
-        scores.sort((a, b) => b.totalScore - a.totalScore);
-        const list = document.getElementById('results-list');
+        results.sort((a, b) => b.score - a.score);
 
-        if(scores.length === 0) {
-            list.innerHTML = `<p style="text-align:center; color:gray; margin-top:40px;">Kriterlere tam uyan bir tanı bulunamadı.</p>`;
-        } else {
-            scores.slice(0, 10).forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'result-item fade-in';
-                div.innerHTML = `
-                    <div class="match-badge">%${Math.min(s.totalScore, 100)} Uyum</div>
-                    <div style="font-weight:800; color:var(--primary); font-size:1.1rem; padding-right:60px;">${s["Tanı Adı"] || 'İsimsiz Tanı'}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Grup: ${s._table}</div>
+        view.innerHTML = `
+            <h2 class="question-title">Ayırıcı Tanılar</h2>
+            <p class="question-desc">Seçilen kriterlere en yakın eşleşmeler:</p>
+            ${results.length ? results.slice(0, 8).map(r => `
+                <div class="result-card">
+                    <div class="score-badge">%${Math.min(r.score, 100)}</div>
+                    <div style="font-weight:900; color:var(--primary); font-size:1.15rem; margin-bottom:4px;">${r["Tanı Adı"]}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:12px;">${r._source}</div>
                     
-                    <div style="font-size:0.85rem; line-height:1.4; color:#334155;">
-                        <strong>Klinik:</strong> ${s["Klinik Özellikleri"]?.substring(0, 120) || 'Veri yok'}...
+                    <div style="font-size:0.85rem; line-height:1.5;">
+                        <strong>Klinik:</strong> ${r["Klinik Özellikleri"]?.substring(0, 150)}...
                     </div>
-                    
-                    ${s["Özel Benzetmesi"] ? `
-                        <div style="background:#fff7ed; padding:8px; border-radius:8px; margin:10px 0; border:1px dashed #fdba74; font-size:0.8rem;">
-                            <strong>Benzetme:</strong> ${s["Özel Benzetmesi"]}
+
+                    ${r["Özel Benzetmesi"] ? `
+                        <div class="spot-hint">
+                            <i data-lucide="lightbulb" style="width:14px"></i>
+                            Spot: ${r["Özel Benzetmesi"]}
                         </div>
                     ` : ''}
 
-                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;">
-                        ${s.hits.map(h => `<span style="font-size:0.65rem; background:#f1f5f9; padding:3px 8px; border-radius:6px; color:#475569;">${h}</span>`).join('')}
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">
+                        ${r.matchingTags.map(t => `<span style="font-size:0.65rem; background:#f1f5f9; padding:4px 8px; border-radius:6px; font-weight:600;">${t}</span>`).join('')}
                     </div>
-                `;
-                list.appendChild(div);
-            });
-        }
+                </div>
+            `).join('') : '<p style="text-align:center; padding:40px; color:gray;">Eşleşme bulunamadı.</p>'}
+        `;
 
-        footer.innerHTML = `<button class="btn btn-next" onclick="location.reload()">Sıfırla ve Yeniden Başla</button>`;
+        footer.innerHTML = `<button class="btn btn-next" onclick="location.reload()">Yeni Sorgu</button>`;
         lucide.createIcons();
     }
 
-    window.onload = setup;
+    window.onload = init;
 </script>
 
 </body>
