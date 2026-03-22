@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Anamnez Tanı Asistanı - Veritabanı Entegre</title>
+    <title>Anamnez Tanı Asistanı - Gelişmiş Teşhis Sistemi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
@@ -129,6 +129,14 @@
             padding: 16px;
             margin-bottom: 12px;
             background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-badge {
+            position: absolute; right: 0; top: 0;
+            padding: 4px 12px; font-size: 0.7rem; font-weight: 900;
+            background: var(--primary); color: white; border-bottom-left-radius: 12px;
         }
 
         #loader {
@@ -143,7 +151,7 @@
 
 <div id="loader">
     <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 600; color: #64748b;">Veritabanı Analiz Ediliyor...</p>
+    <p style="margin-top: 15px; font-weight: 600; color: #64748b;">Klinik Veriler Yükleniyor...</p>
 </div>
 
 <div id="app-container">
@@ -158,17 +166,17 @@
     let answers = {};
     let allData = [];
 
-    // Veritabanı sütunlarına göre mantıksal kümelendirme
+    // Veritabanı hücrelerini kapsayan genişletilmiş soru akışı
     const workflow = [
         {
             id: "demografik",
-            cluster: "Küme 1: Hasta Profili",
-            title: "Demografik Bilgiler",
-            desc: "Yaş ve cinsiyet, epidemiyolojik olarak bazı tanıları ön plana çıkarır.",
+            cluster: "Profil",
+            title: "Hasta Profili",
+            desc: "Demografik veriler tanı olasılıklarını daraltır.",
             options: [
-                { val: "Çocuk", label: "Çocuk/Bebek", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Çocuk", label: "Çocuk / Bebek", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Genç", label: "Genç Erişkin", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Erişkin", label: "Erişkin/Orta Yaş", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Erişkin", label: "Orta Yaş / Erişkin", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Yaşlı", label: "Yaşlı", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Erkek", label: "Erkek", key: "Cinsiyet" },
                 { val: "Kadın", label: "Kadın", key: "Cinsiyet" }
@@ -176,42 +184,87 @@
         },
         {
             id: "lokalizasyon",
-            cluster: "Küme 2: Bölgesel Dağılım",
-            title: "Lezyonun Yeri",
-            desc: "Lezyon en belirgin olarak nerede izleniyor?",
+            cluster: "Bölge",
+            title: "Lezyonun Yerleşimi",
+            desc: "Anatomik lokalizasyon ayırıcı tanıda kritiktir.",
             options: [
-                { val: "Dil", label: "Dil / Dil Dorsumu", key: "Lokalizasyon" },
-                { val: "Damak", label: "Damak (Sert/Yumuşak)", key: "Lokalizasyon" },
-                { val: "Dudak", label: "Dudak Mukozası/Vermilyon", key: "Lokalizasyon" },
-                { val: "Dişeti", label: "Gingiva / Dişeti", key: "Lokalizasyon" },
+                { val: "Dil", label: "Dil (Dorsum, Lateral, Ventral)", key: "Lokalizasyon" },
+                { val: "Damak", label: "Sert / Yumuşak Damak", key: "Lokalizasyon" },
+                { val: "Dudak", label: "Dudak Mukozası / Vermilyon", key: "Lokalizasyon" },
+                { val: "Dişeti", label: "Gingiva (Dişeti)", key: "Lokalizasyon" },
                 { val: "Yanak", label: "Bukkal Mukoza", key: "Lokalizasyon" },
-                { val: "Taban", label: "Ağız Tabanı", key: "Lokalizasyon" }
+                { val: "Taban", label: "Ağız Tabanı", key: "Lokalizasyon" },
+                { val: "Komisür", label: "Ağız Köşesi (Komisür)", key: "Lokalizasyon" }
             ]
         },
         {
-            id: "semptom",
-            cluster: "Küme 3: Subjektif Bulgular",
-            title: "Temel Şikayetler",
-            desc: "Hastanın ifade ettiği birincil semptom nedir?",
+            id: "klinik_karakter",
+            cluster: "Görünüm",
+            title: "Temel Klinik Karakter",
+            desc: "Lezyonun fiziksel yapısını nasıl tanımlarsınız?",
             options: [
-                { val: "Asemptomatik", label: "Semptom Yok / Tesadüfi", key: "Semptomları" },
-                { val: "Ağrı", label: "Ağrılı / Hassas", key: "Semptomları" },
-                { val: "Yava", label: "Yavaş Büyüyen Kitle", key: "Semptomları" },
-                { val: "Kanam", label: "Kanama Eğilimi", key: "Semptomları" },
-                { val: "Uyuş", label: "Parestezi / Uyuşukluk", key: "Semptomları" }
+                { val: "Beyaz", label: "Beyaz / Keratotik / Plak", key: "Klinik Özellikleri" },
+                { val: "Kırmızı", label: "Kırmızı / Eritematöz", key: "Klinik Özellikleri" },
+                { val: "Ülser", label: "Ülserasyon / Erozyon / Atrofi", key: "Klinik Özellikleri" },
+                { val: "Vezikül", label: "Vezikül / Bül / Kabarcık", key: "Klinik Özellikleri" },
+                { val: "Pigment", label: "Kahverengi / Siyah / Mor (Pigmente)", key: "Klinik Özellikleri" },
+                { val: "Sarı", label: "Sarımsı / Püstüler", key: "Klinik Özellikleri" }
             ]
         },
         {
-            id: "klinik",
-            cluster: "Küme 4: Objektif Muayene",
-            title: "Klinik Görünüm",
-            desc: "Lezyonun fiziksel karakteristiği nasıl?",
+            id: "morfoloji",
+            cluster: "Morfoloji",
+            title: "Yüzey ve Yapı",
+            desc: "Lezyonun yüzey dokusu ve büyüme şekli.",
             options: [
-                { val: "Beyaz", label: "Beyaz / Keratotik", key: "Klinik Özellikleri" },
-                { val: "Ülser", label: "Ülserasyon / Erozyon", key: "Klinik Özellikleri" },
-                { val: "Ekzofitik", label: "Ekzofitik / Karnabahar", key: "Klinik Özellikleri" },
-                { val: "Vezikül", label: "Vezikül / Bül", key: "Klinik Özellikleri" },
-                { val: "Pigment", label: "Pigmente / Renkli", key: "Klinik Özellikleri" }
+                { val: "Ekzofitik", label: "Dışa Doğru Büyüyen (Ekzofitik)", key: "Klinik Özellikleri" },
+                { val: "Endofitik", label: "İçe Doğru Çökük (Endofitik)", key: "Klinik Özellikleri" },
+                { val: "Saplı", label: "Saplı (Pedünküllü)", key: "Klinik Özellikleri" },
+                { val: "Geniş tabanlı", label: "Geniş Tabanlı (Sesil)", key: "Klinik Özellikleri" },
+                { val: "Verriköz", label: "Karnabahar / Siğil Benzeri", key: "Klinik Özellikleri" },
+                { val: "Fissür", label: "Yarık / Çatlak Tarzında", key: "Klinik Özellikleri" }
+            ]
+        },
+        {
+            id: "semptomlar",
+            cluster: "Semptom",
+            title: "Eşlik Eden Şikayetler",
+            desc: "Hastanın subjektif deneyimi nedir?",
+            options: [
+                { val: "Asemptomatik", label: "Şikayet Yok (Tesadüfi)", key: "Semptomları" },
+                { val: "Ağrı", label: "Ağrı veya Yanma Hissi", key: "Semptomları" },
+                { val: "Uyuş", label: "Uyuşukluk (Parestezi)", key: "Semptomları" },
+                { val: "Kanam", label: "Kolayca Kanama", key: "Semptomları" },
+                { val: "Koku", label: "Kötü Koku (Halitosis)", key: "Semptomları" },
+                { val: "Disvaji", label: "Yutma Güçlüğü", key: "Semptomları" }
+            ]
+        },
+        {
+            id: "radyoloji",
+            cluster: "Görüntüleme",
+            title: "Radyolojik Bulgular",
+            desc: "Eğer varsa, radyolojik gruptaki baskın özellik.",
+            options: [
+                { val: "YOK", label: "Radyolojik Bulgu Yok", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Radyolüsent", label: "Koyu Alan (Radyolüsent)", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Radyoopak", label: "Beyaz Alan (Radyoopak)", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Miks", label: "Karışık (Miks Yapı)", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "Sınır", label: "Sınırları Belirgin", key: "Radyolojik Görüntü Özellikleri" },
+                { val: "İnvaziv", label: "Sınırları Belirsiz / Düzensiz", key: "Radyolojik Görüntü Özellikleri" }
+            ]
+        },
+        {
+            id: "etiyoloji",
+            cluster: "Hikaye",
+            title: "Olası Hazırlayıcı Faktörler",
+            desc: "Lezyonun başlangıcına ne sebep olmuş olabilir?",
+            options: [
+                { val: "Travma", label: "Isırma / Protez Vurması / Keskin Diş", key: "Etiyolojisi" },
+                { val: "Sigara", label: "Sigara / Tütün Kullanımı", key: "Etiyolojisi" },
+                { val: "Alkol", label: "Alkol Tüketimi", key: "Etiyolojisi" },
+                { val: "Enfeksiyon", label: "Bakteriyel / Viral / Mantar", key: "Etiyolojisi" },
+                { val: "Genetik", label: "Ailevi / Kalıtımsal Geçiş", key: "Etiyolojisi" },
+                { val: "İdiyopatik", label: "Nedeni Bilinmeyen", key: "Etiyolojisi" }
             ]
         }
     ];
@@ -219,15 +272,11 @@
     async function setup() {
         try {
             const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` });
-            
-            // Gerçek DB dosyasını fetch et
             const response = await fetch('TANISIST..db');
             const buf = await response.arrayBuffer();
             db = new SQL.Database(new Uint8Array(buf));
 
-            // Tüm tabloları birleştirip genel bir havuz oluştur (Örnek: Kırmızı Lezyonlar, Beyaz Lezyonlar vb.)
-            const tables = ["Kırmızı Lezyonlar", "Yumuşak Doku Kistleri", "Beyaz Lezyonlar"]; 
-            // Not: Gerçek DB'de tablo isimleri farklı olabilir, SQL ile dinamik çekilebilir.
+            const tables = ["Kırmızı Lezyonlar", "Yumuşak Doku Kistleri", "Beyaz Lezyonlar", "Kemik Patolojileri", "Tükürük Bezi Patolojileri"]; 
             
             tables.forEach(t => {
                 try {
@@ -235,20 +284,18 @@
                     if(res.length) {
                         const cols = res[0].columns;
                         res[0].values.forEach(row => {
-                            let obj = {};
+                            let obj = { _table: t };
                             cols.forEach((c, i) => obj[c] = row[i]);
                             allData.push(obj);
                         });
                     }
-                } catch(e) { console.log(t + " tablosu atlandı."); }
+                } catch(e) { /* Tablo yoksa atla */ }
             });
 
             document.getElementById('loader').style.display = 'none';
             render();
         } catch (err) {
-            console.error(err);
-            // Fallback: DB bulunamazsa boş başlat
-            document.getElementById('loader').innerHTML = "<p>DB Dosyası Yüklenemedi.</p>";
+            document.getElementById('loader').innerHTML = "<p>Veritabanı erişim hatası. Lütfen dosyayı kontrol edin.</p>";
         }
     }
 
@@ -283,7 +330,7 @@
         footer.innerHTML = `
             ${step > 0 ? `<button class="btn btn-prev" onclick="move(-1)"><i data-lucide="arrow-left"></i></button>` : ''}
             <button class="btn btn-next" onclick="move(1)" ${!answers[q.id]?.length ? 'disabled' : ''}>
-                ${step === workflow.length - 1 ? 'Analizi Başlat' : 'Sonraki Adım'}
+                ${step === workflow.length - 1 ? 'Sonuçları Gör' : 'Devam Et'}
             </button>
         `;
         lucide.createIcons();
@@ -311,8 +358,8 @@
         
         container.innerHTML = `
             <div class="header-section">
-                <h2 class="title">Diferansiyel Tanı Listesi</h2>
-                <p class="subtitle">Seçilen klinik parametrelere göre veritabanı eşleşmeleri:</p>
+                <h2 class="title">Teşhis Analizi</h2>
+                <p class="subtitle">Veritabanı taraması sonucunda en kuvvetli eşleşmeler:</p>
             </div>
             <div id="results-list"></div>
         `;
@@ -322,20 +369,28 @@
 
         allData.forEach(item => {
             let score = 0;
-            let matchedCriteria = [];
+            let hits = [];
             
             userSelection.forEach(ans => {
                 const dbValue = String(item[ans.key] || "").toLowerCase();
                 const searchValue = ans.val.toLowerCase();
                 
                 if (dbValue.includes(searchValue)) {
-                    score += 25; // Eşleşme ağırlığı
-                    matchedCriteria.push(ans.label);
+                    score += 20; 
+                    hits.push(ans.label);
                 }
             });
 
-            if (score > 0) {
-                scores.push({ ...item, totalScore: score, matchedCriteria });
+            // Özel Benzetme ve Notlar taraması (Bonus Puan)
+            const globalText = JSON.stringify(item).toLowerCase();
+            userSelection.forEach(ans => {
+                if (globalText.includes(ans.val.toLowerCase()) && !hits.includes(ans.label)) {
+                    score += 5;
+                }
+            });
+
+            if (score > 15) { // Minimum eşleşme barajı
+                scores.push({ ...item, totalScore: score, hits });
             }
         });
 
@@ -343,26 +398,35 @@
         const list = document.getElementById('results-list');
 
         if(scores.length === 0) {
-            list.innerHTML = `<p style="text-align:center; color:gray; margin-top:40px;">Eşleşen tanı bulunamadı. Lütfen kriterleri genişletin.</p>`;
+            list.innerHTML = `<p style="text-align:center; color:gray; margin-top:40px;">Kriterlere tam uyan bir tanı bulunamadı.</p>`;
         } else {
-            scores.slice(0, 8).forEach(s => {
+            scores.slice(0, 10).forEach(s => {
                 const div = document.createElement('div');
-                div.className = 'result-item';
+                div.className = 'result-item fade-in';
                 div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:start;">
-                        <div style="font-weight:800; color:var(--primary); font-size:1.1rem; flex:1;">${s["Tanı Adı"] || 'Bilinmeyen Tanı'}</div>
-                        <div style="background:var(--primary-light); color:var(--primary); font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:900;">%${Math.min(s.totalScore, 100)} UYUM</div>
+                    <div class="match-badge">%${Math.min(s.totalScore, 100)} Uyum</div>
+                    <div style="font-weight:800; color:var(--primary); font-size:1.1rem; padding-right:60px;">${s["Tanı Adı"] || 'İsimsiz Tanı'}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Grup: ${s._table}</div>
+                    
+                    <div style="font-size:0.85rem; line-height:1.4; color:#334155;">
+                        <strong>Klinik:</strong> ${s["Klinik Özellikleri"]?.substring(0, 120) || 'Veri yok'}...
                     </div>
-                    <div style="font-size:0.85rem; color:#64748b; margin:8px 0;">${s["Klinik Özellikleri"]?.substring(0, 100)}...</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;">
-                        ${s.matchedCriteria.map(c => `<span style="font-size:0.65rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${c}</span>`).join('')}
+                    
+                    ${s["Özel Benzetmesi"] ? `
+                        <div style="background:#fff7ed; padding:8px; border-radius:8px; margin:10px 0; border:1px dashed #fdba74; font-size:0.8rem;">
+                            <strong>Benzetme:</strong> ${s["Özel Benzetmesi"]}
+                        </div>
+                    ` : ''}
+
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;">
+                        ${s.hits.map(h => `<span style="font-size:0.65rem; background:#f1f5f9; padding:3px 8px; border-radius:6px; color:#475569;">${h}</span>`).join('')}
                     </div>
                 `;
                 list.appendChild(div);
             });
         }
 
-        footer.innerHTML = `<button class="btn btn-next" onclick="location.reload()">Başa Dön</button>`;
+        footer.innerHTML = `<button class="btn btn-next" onclick="location.reload()">Sıfırla ve Yeniden Başla</button>`;
         lucide.createIcons();
     }
 
