@@ -3,387 +3,458 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tanı Sistemi - Klinik Karar Destek</title>
+    <title>Klinik Tanı Analizörü</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
     <style>
-        :root { 
-            --primary: #0284c7; 
-            --primary-dark: #0369a1;
-            --accent: #f59e0b;
-            --bg: #f1f5f9;
-            --surface: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --radius: 16px;
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #334155;
+            --radius: 12px;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--bg); margin: 0; height: 100vh;
-            color: var(--text-main); overflow: hidden; display: flex; justify-content: center;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        #app-container { 
-            width: 100%; max-width: 500px; background: var(--surface);
-            display: flex; flex-direction: column; position: relative;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        #app-wrapper {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--card);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
         }
 
-        .step-indicator {
-            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
-            background: #e2e8f0; z-index: 50;
-        }
-        .step-progress {
-            height: 100%; background: var(--primary); width: 0%;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        .header {
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            text-align: center;
         }
 
-        .content-area {
-            flex: 1; overflow-y: auto; padding: 24px;
-            padding-top: calc(40px + env(safe-area-inset-top));
-            scrollbar-width: none;
+        .header h1 { margin: 0; font-size: 1.25rem; }
+
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            width: 100%;
         }
 
-        .cluster-header {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-        }
-        .cluster-tag {
-            background: #e0f2fe; color: #0369a1; padding: 4px 10px;
-            border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
-        }
-
-        .question-title { font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin: 0 0 10px 0; }
-        .question-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; }
-
-        .options-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
-
-        .option-item {
-            border: 2px solid #f1f5f9; border-radius: var(--radius);
-            padding: 18px; cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; gap: 14px; position: relative;
-        }
-        .option-item:hover { border-color: #e2e8f0; background: #f8fafc; }
-        .option-item.selected { 
-            border-color: var(--primary); background: #f0f9ff; 
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+        .progress-inner {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s ease;
         }
 
-        .check-box {
-            width: 22px; height: 22px; border: 2px solid #cbd5e1;
-            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .question-desc {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        .options-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             transition: all 0.2s;
+            text-align: left;
         }
-        .option-item.selected .check-box {
-            background: var(--primary); border-color: var(--primary);
+
+        .option-btn:hover { border-color: #cbd5e1; background: #f1f5f9; }
+        .option-btn.selected {
+            border-color: var(--accent);
+            background: #eff6ff;
+            color: var(--accent);
         }
-        .option-text { font-weight: 600; font-size: 1rem; color: #334155; }
 
         .footer {
-            padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
-            border-top: 1px solid #f1f5f9; background: white; display: flex; gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
         }
 
         .btn {
-            flex: 1; padding: 18px; border-radius: 14px; font-weight: 700;
-            border: none; cursor: pointer; display: flex; align-items: center;
-            justify-content: center; gap: 8px; transition: all 0.2s;
+            padding: 14px 24px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1rem;
         }
-        .btn-back { background: #f1f5f9; color: #475569; flex: 0 0 65px; }
-        .btn-next { background: var(--primary); color: white; }
-        .btn:disabled { opacity: 0.4; filter: grayscale(1); }
 
+        .btn-primary { background: var(--accent); color: white; flex: 2; }
+        .btn-secondary { background: #f1f5f9; color: #475569; flex: 1; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Sonuç Ekranı */
         .result-card {
-            border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px;
-            margin-bottom: 16px; position: relative; background: white;
-        }
-        .score-badge {
-            position: absolute; right: 15px; top: 15px;
-            background: #fef3c7; color: #92400e; padding: 4px 10px;
-            border-radius: 12px; font-weight: 900; font-size: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
         }
 
-        #loader {
+        .match-pct {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #22c55e;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .result-title { font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+        .result-group { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 12px; }
+        .result-info { font-size: 0.85rem; line-height: 1.5; color: #475569; }
+
+        .spot-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fff7ed;
+            color: #9a3412;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+            border: 1px solid #ffedd5;
+        }
+
+        #loading-screen {
             position: fixed; inset: 0; background: white; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .spin { width: 45px; height: 45px; border: 4px solid #f1f5f9; border-top-color: var(--primary); border-radius: 50%; animation: s 1s linear infinite; }
-        @keyframes s { to { transform: rotate(360deg); } }
-
-        .spot-hint {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: #fff7ed; color: #c2410c; padding: 6px 12px;
-            border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin-top: 12px;
-            border: 1px solid #ffedd5;
-        }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top-color: var(--accent); border-radius: 50%; animation: rot 1s infinite linear; }
+        @keyframes rot { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loader">
-    <div class="spin"></div>
-    <p style="margin-top:20px; font-weight:700; color:#475569">Sistem Yapılandırılıyor...</p>
+<div id="loading-screen">
+    <div class="spinner"></div>
+    <p style="margin-top:15px; font-weight:600;">Analiz Modülleri Yükleniyor...</p>
 </div>
 
-<div id="app-container">
-    <div class="step-indicator"><div class="step-progress" id="progress"></div></div>
-    <div id="view" class="content-area"></div>
+<div id="app-wrapper">
+    <div class="header"><h1>KLİNİK TANI ANALİZÖRÜ</h1></div>
+    <div class="progress-bar"><div class="progress-inner" id="progress"></div></div>
+    
+    <div id="main-content" class="content"></div>
+    
     <div id="footer" class="footer"></div>
 </div>
 
 <script>
     let db = null;
     let step = 0;
-    let selections = {};
-    let allRecords = [];
+    let userAnswers = {};
+    let allData = [];
 
-    // Verilen listeye göre optimize edilmiş akış
-    const workflow = [
+    // Sağladığınız anahtar kelime setine göre organize edilmiş soru akışı
+    const questions = [
         {
             id: "demografik",
-            cluster: "Filtreleme",
-            title: "Hasta Profili",
-            desc: "Yaş ve cinsiyet bazı lezyonları istatistiksel olarak dışlar.",
+            cat: "Profil",
+            title: "Hasta Demografisi",
+            desc: "Belirli patolojiler belirli yaş gruplarında kümelenir.",
             options: [
                 { val: "Çocuk", label: "Çocuk / Adölesan (10-20)", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Genç", label: "Genç Erişkin (20-40)", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Erişkin", label: "Orta Yaş (40-60)", key: "Görüldüğü Yaş Aralığı" },
-                { val: "Yaşlı", label: "Yaşlı (60+)", key: "Görüldüğü Yaş Aralığı" },
+                { val: "Yaşlı", label: "Yaşlı (50+)", key: "Görüldüğü Yaş Aralığı" },
                 { val: "Kadın", label: "Kadın", key: "Cinsiyet" },
                 { val: "Erkek", label: "Erkek", key: "Cinsiyet" }
             ]
         },
         {
-            id: "lokalizasyon",
-            cluster: "Konum",
-            title: "Lezyon Nerede?",
-            desc: "Hücre veritabanındaki lokalizasyon eşleşmeleri aranıyor.",
-            options: [
-                { val: "Bukkal", label: "Bukkal Mukoza / Yanak", key: "Lokalizasyon" },
-                { val: "Dil", label: "Dil (Lateral / Ventral)", key: "Lokalizasyon" },
-                { val: "Damak", label: "Sert / Yumuşak Damak", key: "Lokalizasyon" },
-                { val: "Dişeti", label: "Dişeti / Jeneralize Büyüme", key: "Lokalizasyon" },
-                { val: "Mandibula", label: "Mandibula (Kemik)", key: "Lokalizasyon" },
-                { val: "Maksilla", label: "Maksilla (Kemik)", key: "Lokalizasyon" },
-                { val: "Taban", label: "Ağız Tabanı / Orta Hat", key: "Lokalizasyon" }
-            ]
-        },
-        {
             id: "etiyoloji",
-            cluster: "Öykü",
-            title: "Tetikleyici Faktörler",
-            desc: "Olası nedenler ve hastanın hayat tarzı.",
+            cat: "Etiyoloji",
+            title: "Olası Tetikleyiciler",
+            desc: "Lezyonun başlangıcına neden olan faktörler nelerdir?",
             options: [
-                { val: "Tütün", label: "Tütün (Sigara/Pipo/Alkol)", key: "Etiyolojisi" },
-                { val: "İritasyon", label: "Kronik İritasyon / Protez Vuruğu", key: "Etiyolojisi" },
-                { val: "Enfeksiyon", label: "Enfeksiyöz (Mantar/Virüs/Bakteri)", key: "Etiyolojisi" },
-                { val: "Genetik", label: "Genetik / Ailevi Öykü", key: "Etiyolojisi" },
-                { val: "Hormonal", label: "Hormonal / Sistemik (PTH/T3-T4)", key: "Etiyolojisi" },
+                { val: "Tütün", label: "Tütün / Alkol / Kronik İrritasyon", key: "Etiyolojisi" },
+                { val: "Protez", label: "Protez Vuruğu / Travma", key: "Etiyolojisi" },
+                { val: "Enfeksiyon", label: "Enfeksiyon (Candida/HPV/HSV)", key: "Etiyolojisi" },
+                { val: "Genetik", label: "Genetik (KRT Mutasyonu/Ailevi)", key: "Etiyolojisi" },
+                { val: "Hormonal", label: "Sistemik/Hormonal (PTH/Tiroid)", key: "Etiyolojisi" },
                 { val: "Vitamin", label: "Vitamin Eksikliği", key: "Etiyolojisi" }
             ]
         },
         {
             id: "semptom",
-            cluster: "Şikayet",
-            title: "Hasta Ne Hissediyor?",
-            desc: "Subjektif semptomlar ve fonksiyon kayıpları.",
+            cat: "Semptomlar",
+            title: "Hasta Şikayetleri",
+            desc: "Subjektif bulgular ve duyusal değişimler.",
             options: [
-                { val: "Ağrı", label: "Nevraljik Ağrı / Yanma Hissi", key: "Semptomları" },
-                { val: "Ağrısız", label: "Ağrısız Şişlik", key: "Semptomları" },
-                { val: "Tat", label: "Metalik Tat Bozukluğu", key: "Semptomları" },
-                { val: "Disfaji", label: "Yutma Güçlüğü / Disfaji", key: "Semptomları" },
-                { val: "Trismus", label: "Trismus (Ağız Açma Kısıtlılığı)", key: "Semptomları" },
-                { val: "Kanama", label: "Spontan Kanama", key: "Semptomları" }
+                { val: "Ağrı", label: "Ağrı (Nevraljik/Yanma)", key: "SemptomlarÄ±" },
+                { val: "Ağrısız", label: "Ağrısız Şişlik", key: "SemptomlarÄ±" },
+                { val: "Tat", label: "Metalik Tat Bozukluğu", key: "SemptomlarÄ±" },
+                { val: "Disfaji", label: "Yutma Güçlüğü / Disfaji", key: "SemptomlarÄ±" },
+                { val: "Kanama", label: "Spontan Kanama", key: "SemptomlarÄ±" },
+                { val: "Halsizlik", label: "Halsizlik / Genel Belirtiler", key: "SemptomlarÄ±" }
+            ]
+        },
+        {
+            id: "lokalizasyon",
+            cat: "Konum",
+            title: "Lezyonun Bölgesi",
+            desc: "Anatomik yerleşim ayırıcı tanıda en büyük filtredir.",
+            options: [
+                { val: "Bukkal", label: "Bukkal Mukoza / Yanak", key: "Lokalizasyon" },
+                { val: "Dil", label: "Dil (Lateral/Ventral/Dorsum)", key: "Lokalizasyon" },
+                { val: "Damak", label: "Sert / Yumuşak Damak", key: "Lokalizasyon" },
+                { val: "Dişeti", label: "Dişeti (Gingiva)", key: "Lokalizasyon" },
+                { val: "Taban", label: "Ağız Tabanı / Orta Hat", key: "Lokalizasyon" },
+                { val: "Mandibula", label: "Mandibula Posterior / Ramus", key: "Lokalizasyon" },
+                { val: "Maksilla", label: "Maksilla Anterior", key: "Lokalizasyon" }
             ]
         },
         {
             id: "klinik",
-            cluster: "Muayene",
-            title: "Klinik Görünüm",
-            desc: "Objektif muayene bulguları ve doku değişimi.",
+            cat: "Klinik Bulgular",
+            title: "Muayene Özellikleri",
+            desc: "Objektif görünüm ve doku karakteri.",
             options: [
-                { val: "Kazınabilen", label: "Kazınabilen Beyaz Plaklar", key: "Klinik Özellikleri" },
-                { val: "Kazınamayan", label: "Kazınamayan Beyaz Plaklar", key: "Klinik Özellikleri" },
-                { val: "Kadifemsi", label: "Kadifemsi / Kırmızı Yüzey", key: "Klinik Özellikleri" },
-                { val: "Hamur", label: "Hamur Kıvamında Kitle", key: "Klinik Özellikleri" },
-                { val: "Krut", label: "Kanlı Krutlar (Dudakta)", key: "Klinik Özellikleri" },
-                { val: "Pus", label: "Pus (İrin) Çıkışı", key: "Klinik Özellikleri" }
+                { val: "Kazınabilen", label: "Kazınabilen Beyaz Plaklar", key: "Klinik Ã–zellikleri" },
+                { val: "Kazınamayan", label: "Kazınamayan / Sabit Plaklar", key: "Klinik Ã–zellikleri" },
+                { val: "Süt kesiği", label: "Süt Kesiği Görünümü", key: "Klinik Ã–zellikleri" },
+                { val: "Kadifemsi", label: "Kadifemsi / Kırmızı Yüzey", key: "Klinik Ã–zellikleri" },
+                { val: "Hamur", label: "Hamur Kıvamında / Fikse Kitle", key: "Klinik Ã–zellikleri" },
+                { val: "Krut", label: "Kanlı Krutlar (Dudakta)", key: "Klinik Ã–zellikleri" },
+                { val: "Pus", label: "Pus (İrin) Çıkışı", key: "Klinik Ã–zellikleri" }
             ]
         },
         {
             id: "radyoloji",
-            cluster: "Teknik Terim",
-            title: "Görüntüleme Özellikleri",
-            desc: "Radyolojik sınırlara ve karakteristiğe odaklanın.",
+            cat: "Radyoloji",
+            title: "Görüntüleme Bulguları",
+            desc: "Teknik görüntü özellikleri.",
             options: [
-                { val: "Multiloküler", label: "Multiloküler Radyolüsensi", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Güve", label: "Güve Yeniği (Düzensiz Yıkım)", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Scalloping", label: "Scalloping (Kök Arası Uzanım)", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Opak", label: "Radyoopak Kalsifikasyonlar", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Dura", label: "Lamina Dura Kaybı", key: "Radyolojik Görüntü Özellikleri" },
-                { val: "Sekestr", label: "Sekestr (Ölü Kemik)", key: "Radyolojik Görüntü Özellikleri" }
+                { val: "Multiloküler", label: "Multiloküler Radyolüsensi", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" },
+                { val: "Güve", label: "Güve Yeniği Görünümü", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" },
+                { val: "Scalloping", label: "Scalloping (Kök Arası Uzanım)", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" },
+                { val: "Opak", label: "Radyoopak Kalsifikasyonlar", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" },
+                { val: "Dura", label: "Lamina Dura Kaybı", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" },
+                { val: "Sekestr", label: "Sekestr (Ölü Kemik)", key: "Radyolojik GÃ¶rÃ¼ntÃ¼ Ã–zellikleri" }
             ]
         },
         {
             id: "benzetme",
-            cluster: "Spot Bilgi",
+            cat: "Spot Tanı",
             title: "Özel Benzetmeler",
-            desc: "Tanı koydurucu karakteristik benzetmeler.",
+            desc: "Karakteristik 'Spot' bilgiler.",
             options: [
-                { val: "Kar fırtınası", label: "Kar Fırtınası (Driven Snow)", key: "Özel Benzetmesi" },
-                { val: "Sabun köpüğü", label: "Sabun Köpüğü / Bal Peteği", key: "Özel Benzetmesi" },
-                { val: "Süt kesiği", label: "Süt Kesiği / Süzme Peynir", key: "Özel Benzetmesi" },
-                { val: "Soğan zarı", label: "Soğan Zarı (Periost Reaksiyonu)", key: "Özel Benzetmesi" },
-                { val: "İnci", label: "İnci Tanesi", key: "Özel Benzetmesi" },
-                { val: "Hedef", label: "Hedef Tahtası (Bulls-eye)", key: "Özel Benzetmesi" }
+                { val: "Kar fırtınası", label: "Kar Fırtınası (Driven Snow)", key: "Ã–zel Benzetmesi" },
+                { val: "Sabun köpüğü", label: "Sabun Köpüğü / Bal Peteği", key: "Ã–zel Benzetmesi" },
+                { val: "Soğan zarı", label: "Soğan Zarı Görünümü", key: "Ã–zel Benzetmesi" },
+                { val: "İnci", label: "İnci Tanesi (Epstein)", key: "Ã–zel Benzetmesi" },
+                { val: "Hedef", label: "Hedef Tahtası (Bulls-eye)", key: "Ã–zel Benzetmesi" },
+                { val: "Double Chin", label: "Çift Çene (Double Chin)", key: "Ã–zel Benzetmesi" }
             ]
         }
     ];
 
-    async function init() {
+    async function initDB() {
         try {
             const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${f}` });
             const response = await fetch('TANISIST..db');
             const buf = await response.arrayBuffer();
             db = new SQL.Database(new Uint8Array(buf));
 
-            const tableNames = ["Kırmızı Lezyonlar", "Yumuşak Doku Kistleri", "Beyaz Lezyonlar", "Kemik Patolojileri", "Tükürük Bezi Patolojileri"];
+            const tables = ["KÄ±rmÄ±zÄ± Lezyonlar", "YumuÅŸak Doku Kistleri", "Beyaz Lezyonlar", "Kemik Patolojileri", "TÃ¼kÃ¼rÃ¼k Bezi Patolojileri"];
             
-            tableNames.forEach(tn => {
+            tables.forEach(t => {
                 try {
-                    const res = db.exec(`SELECT * FROM "${tn}"`);
-                    if (res.length) {
+                    const res = db.exec(`SELECT * FROM "${t}"`);
+                    if(res.length) {
                         const cols = res[0].columns;
-                        res[0].values.forEach(v => {
-                            let rec = { _source: tn };
-                            cols.forEach((c, i) => rec[c] = v[i]);
-                            allRecords.push(rec);
+                        res[0].values.forEach(row => {
+                            let obj = { _tbl: t };
+                            cols.forEach((c, i) => obj[c] = row[i]);
+                            allData.push(obj);
                         });
                     }
                 } catch(e) {}
             });
 
-            document.getElementById('loader').style.display = 'none';
+            document.getElementById('loading-screen').style.display = 'none';
             render();
-        } catch(e) { console.error(e); }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('loading-screen').innerHTML = "Veritabanı bağlantı hatası.";
+        }
     }
 
     function render() {
-        const view = document.getElementById('view');
+        const q = questions[step];
+        const container = document.getElementById('main-content');
         const footer = document.getElementById('footer');
-        const q = workflow[step];
         
-        document.getElementById('progress').style.width = ((step / (workflow.length - 1)) * 100) + "%";
+        document.getElementById('progress').style.width = ((step / questions.length) * 100) + "%";
 
-        view.innerHTML = `
-            <div class="cluster-header">
-                <span class="cluster-tag">${q.cluster}</span>
-            </div>
-            <h2 class="question-title">${q.title}</h2>
-            <p class="question-desc">${q.desc}</p>
-            <div class="options-list">
-                ${q.options.map((o, idx) => {
-                    const active = selections[q.id]?.some(s => s.val === o.val);
+        container.innerHTML = `
+            <span class="category-badge">${q.cat}</span>
+            <div class="question-text">${q.title}</div>
+            <div class="question-desc">${q.desc}</div>
+            <div class="options-grid">
+                ${q.options.map((opt, i) => {
+                    const sel = userAnswers[q.id]?.some(a => a.val === opt.val);
                     return `
-                        <div class="option-item ${active ? 'selected' : ''}" onclick="select('${q.id}', ${idx})">
-                            <div class="check-box">
-                                ${active ? '<i data-lucide="check" style="width:14px; color:white"></i>' : ''}
-                            </div>
-                            <span class="option-text">${o.label}</span>
-                        </div>
+                        <button class="option-btn ${sel ? 'selected' : ''}" onclick="toggleSelect('${q.id}', ${i})">
+                            <i data-lucide="${sel ? 'check-square' : 'square'}" style="width:20px;"></i>
+                            ${opt.label}
+                        </button>
                     `;
                 }).join('')}
             </div>
         `;
 
         footer.innerHTML = `
-            ${step > 0 ? `<button class="btn btn-back" onclick="nav(-1)"><i data-lucide="chevron-left"></i></button>` : ''}
-            <button class="btn btn-next" onclick="nav(1)">
-                ${step === workflow.length - 1 ? 'Analizi Başlat' : 'Sonraki'}
-                <i data-lucide="${step === workflow.length - 1 ? 'activity' : 'chevron-right'}"></i>
+            <button class="btn btn-secondary" onclick="move(-1)" ${step === 0 ? 'disabled' : ''}><i data-lucide="arrow-left"></i> Geri</button>
+            <button class="btn btn-primary" onclick="move(1)" ${!userAnswers[q.id]?.length ? 'disabled' : ''}>
+                ${step === questions.length - 1 ? 'Analiz Et' : 'Devam Et'} <i data-lucide="arrow-right"></i>
             </button>
         `;
         lucide.createIcons();
     }
 
-    function select(qId, idx) {
-        const opt = workflow.find(w => w.id === qId).options[idx];
-        if (!selections[qId]) selections[qId] = [];
-        const exists = selections[qId].findIndex(s => s.val === opt.val);
-        if (exists > -1) selections[qId].splice(exists, 1);
-        else selections[qId].push(opt);
+    function toggleSelect(qid, idx) {
+        const opt = questions.find(q => q.id === qid).options[idx];
+        if(!userAnswers[qid]) userAnswers[qid] = [];
+        const exists = userAnswers[qid].findIndex(a => a.val === opt.val);
+        if(exists > -1) userAnswers[qid].splice(exists, 1);
+        else userAnswers[qid].push(opt);
         render();
     }
 
-    function nav(dir) {
-        if (dir === 1 && step === workflow.length - 1) calculate();
+    function move(dir) {
+        if(step + dir >= questions.length) showResults();
         else { step += dir; render(); }
     }
 
-    function calculate() {
-        const view = document.getElementById('view');
+    function showResults() {
+        const container = document.getElementById('main-content');
         const footer = document.getElementById('footer');
-        
-        const userItems = Object.values(selections).flat();
-        let results = [];
+        document.getElementById('progress').style.width = "100%";
 
-        allRecords.forEach(rec => {
+        const selectedList = Object.values(userAnswers).flat();
+        let scores = [];
+
+        allData.forEach(item => {
             let score = 0;
-            let matchingTags = [];
-            const flatText = JSON.stringify(rec).toLowerCase();
+            let matchedKeys = [];
+            const raw = JSON.stringify(item).toLowerCase();
 
-            userItems.forEach(u => {
-                // Sütun bazlı tam eşleşme (Yüksek Puan)
-                const colVal = String(rec[u.key] || "").toLowerCase();
-                if (colVal.includes(u.val.toLowerCase())) {
-                    score += 25;
-                    matchingTags.push(u.label);
+            selectedList.forEach(user => {
+                const cellVal = String(item[user.key] || "").toLowerCase();
+                const search = user.val.toLowerCase();
+
+                // 1. Doğrudan Sütun Eşleşmesi (En yüksek puan)
+                if(cellVal.includes(search)) {
+                    score += 30;
+                    matchedKeys.push(user.label);
                 } 
-                // Global metin araması (Düşük Puan)
-                else if (flatText.includes(u.val.toLowerCase())) {
+                // 2. Satır İçi Genel Eşleşme (Bonus puan)
+                else if(raw.includes(search)) {
                     score += 10;
-                    if (!matchingTags.includes(u.label)) matchingTags.push(u.label);
+                    if(!matchedKeys.includes(user.label)) matchedKeys.push(user.label);
                 }
             });
 
-            if (score > 10) results.push({ ...rec, score, matchingTags });
+            if(score > 15) {
+                scores.push({ ...item, score, matchedKeys });
+            }
         });
 
-        results.sort((a, b) => b.score - a.score);
+        scores.sort((a,b) => b.score - a.score);
 
-        view.innerHTML = `
-            <h2 class="question-title">Ayırıcı Tanılar</h2>
-            <p class="question-desc">Seçilen kriterlere en yakın eşleşmeler:</p>
-            ${results.length ? results.slice(0, 8).map(r => `
+        container.innerHTML = `
+            <div class="question-text">Analiz Sonuçları</div>
+            <p class="question-desc">Anahtar kelimeler ve spot bilgilerle en çok örtüşen tanılar:</p>
+            ${scores.length ? scores.slice(0, 10).map(s => `
                 <div class="result-card">
-                    <div class="score-badge">%${Math.min(r.score, 100)}</div>
-                    <div style="font-weight:900; color:var(--primary); font-size:1.15rem; margin-bottom:4px;">${r["Tanı Adı"]}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; margin-bottom:12px;">${r._source}</div>
-                    
-                    <div style="font-size:0.85rem; line-height:1.5;">
-                        <strong>Klinik:</strong> ${r["Klinik Özellikleri"]?.substring(0, 150)}...
+                    <div class="match-pct">%${Math.min(s.score, 100)} Uyum</div>
+                    <div class="result-title">${s["TanÄ± AdÄ±"]}</div>
+                    <div class="result-group">${s._tbl}</div>
+                    <div class="result-info">
+                        <strong>Klinik:</strong> ${s["Klinik Ã–zellikleri"]?.substring(0, 140)}...
                     </div>
-
-                    ${r["Özel Benzetmesi"] ? `
-                        <div class="spot-hint">
-                            <i data-lucide="lightbulb" style="width:14px"></i>
-                            Spot: ${r["Özel Benzetmesi"]}
+                    ${s["Ã–zel Benzetmesi"] ? `
+                        <div class="spot-tag">
+                            <i data-lucide="zap" style="width:12px;"></i>
+                            Spot: ${s["Ã–zel Benzetmesi"]}
                         </div>
                     ` : ''}
-
-                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">
-                        ${r.matchingTags.map(t => `<span style="font-size:0.65rem; background:#f1f5f9; padding:4px 8px; border-radius:6px; font-weight:600;">${t}</span>`).join('')}
+                    <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:5px;">
+                        ${s.matchedKeys.map(m => `<span style="font-size:0.65rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${m}</span>`).join('')}
                     </div>
                 </div>
-            `).join('') : '<p style="text-align:center; padding:40px; color:gray;">Eşleşme bulunamadı.</p>'}
+            `).join('') : '<p>Seçilen kriterlere uygun tanı bulunamadı.</p>'}
         `;
 
-        footer.innerHTML = `<button class="btn btn-next" onclick="location.reload()">Yeni Sorgu</button>`;
+        footer.innerHTML = `<button class="btn btn-primary" style="width:100%;" onclick="location.reload()">Yeni Analiz</button>`;
         lucide.createIcons();
     }
 
-    window.onload = init;
+    window.onload = initDB;
 </script>
 
 </body>
